@@ -1,0 +1,275 @@
+{
+	"info": {
+		"_postman_id": "YOUR_COLLECTION_ID",
+		"name": "Blog RESTful API (NestJS + TypeORM)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"description": "Collection for the NestJS Blog RESTful API"
+	},
+	"item": [
+		{
+			"name": "Posts",
+			"item": [
+				{
+					"name": "Create Post",
+			"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"New Solana ETF Outlook From Postman\",\n    \"projectIdentifier\": \"our-news\",\n    \"slug\": \"solana-etf-outlook-postman-test\",\n    \"contentBlocks\": [\n        {\n            \"order\": 0,\n            \"content\": \"<p>This is the first content block from Postman.</p>\"\n        },\n        {\n            \"order\": 1,\n            \"title\": \"Second Block Title\",\n            \"content\": \"<p>This is the second content block with a title.</p>\"\n        }\n    ],\n    \"categories\": [\"Crypto ETFs\", \"Solana News\", \"Postman Test\"],\n    \"authors\": [\"Postman User\"],\n    \"seo\": {\n        \"title\": \"Postman Test: Solana ETF\",\n        \"description\": \"Testing Solana ETF creation via Postman.\"\n    },\n    \"featuredImage\": \"https://example.com/postman-image.jpg\",\n    \"language\": \"en\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+				"url": {
+					"raw": "{{baseUrl}}/posts",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"posts"
+					]
+				},
+						"description": "Creates a new blog post. `projectIdentifier` is mandatory."
+			},
+			"response": []
+		},
+		{
+					"name": "Get All Posts",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+							"raw": "{{baseUrl}}/posts?page=1&limit=5&sort=-createdAt&projectIdentifier=our-news&lang=en&searchTerm=Solana",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"posts"
+					],
+					"query": [
+						{
+							"key": "page",
+									"value": "1"
+						},
+						{
+							"key": "limit",
+							"value": "5"
+								},
+						{
+							"key": "sort",
+									"value": "-createdAt",
+									"description": "Sort field (prepend with '-' for DESC, e.g., -createdAt, title)"
+		},
+		{
+									"key": "projectIdentifier",
+									"value": "our-news",
+									"description": "Filter by project identifier (e.g., our-news)"
+								},
+						{
+							"key": "lang",
+									"value": "en",
+									"description": "Filter by language (e.g., en, tr)"
+		},
+		{
+									"key": "category",
+									"value": "Solana News",
+									"disabled": true
+								},
+								{
+									"key": "author",
+									"value": "Hannah Nelson",
+									"disabled": true
+								},
+						{
+									"key": "searchTerm",
+									"value": "Solana",
+									"description": "Search in post titles"
+						}
+					]
+				},
+						"description": "Retrieves a paginated list of posts with filtering and sorting options."
+			},
+			"response": []
+		},
+		{
+			"name": "Get Post by ID",
+					"variable": [
+						{
+							"key": "postId",
+							"value": "ENTER_POST_ID_HERE",
+							"description": "Replace with an actual post ID (UUID) after creating a post."
+						}
+					],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/posts/{{postId}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"posts",
+						"{{postId}}"
+					]
+				},
+						"description": "Retrieves a specific post by its UUID."
+			},
+			"response": []
+		},
+		{
+					"name": "Get Post by Project and Slug",
+					"variable": [
+						{
+							"key": "projectIdentifier",
+							"value": "our-news"
+						},
+						{
+							"key": "slug",
+							"value": "solana-etf-outlook-list-of-solana-etf-filings-sec-approval"
+						}
+					],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+							"raw": "{{baseUrl}}/posts/{{projectIdentifier}}/{{slug}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"posts",
+								"{{projectIdentifier}}",
+								"{{slug}}"
+					]
+				},
+						"description": "Retrieves a specific post by its project identifier and slug. Example values from the first post in mock.json."
+			},
+			"response": []
+		},
+		{
+					"name": "Update Post (PATCH)",
+					"variable": [
+						{
+							"key": "postIdToUpdate",
+							"value": "ENTER_POST_ID_TO_UPDATE",
+							"description": "Replace with an actual post ID (UUID) to update."
+						}
+					],
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+								"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+							"raw": "{\n    \"title\": \"Updated Solana ETF Outlook (via Postman PATCH)\",\n    \"categories\": [\"Crypto ETFs\", \"Solana News\", \"Updated\"],\n    \"seo\": {\n        \"title\": \"Updated SEO Title for Solana ETF\",\n        \"description\": \"This post was updated via Postman PATCH request.\"\n    }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+							"raw": "{{baseUrl}}/posts/{{postIdToUpdate}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"posts",
+								"{{postIdToUpdate}}"
+					]
+				},
+						"description": "Partially updates an existing post by its UUID."
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Post",
+					"variable": [
+						{
+							"key": "postIdToDelete",
+							"value": "ENTER_POST_ID_TO_DELETE",
+							"description": "Replace with an actual post ID (UUID) to delete."
+						}
+					],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+							"raw": "{{baseUrl}}/posts/{{postIdToDelete}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"posts",
+								"{{postIdToDelete}}"
+					]
+				},
+						"description": "Deletes a specific post by its UUID."
+			},
+			"response": []
+		}
+	],
+			"description": "Endpoints for managing blog posts",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000/api/v1",
+			"type": "string"
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}
