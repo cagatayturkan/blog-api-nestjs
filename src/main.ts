@@ -2,12 +2,15 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
 
   // Set global prefix
-  app.setGlobalPrefix('api/v1');
+  const apiPrefix = configService.get<string>('API_PREFIX', 'api/v1');
+  app.setGlobalPrefix(apiPrefix);
 
   // Enable global validation pipe
   app.useGlobalPipes(
@@ -24,7 +27,8 @@ async function bootstrap() {
   // Global response interceptor
   app.useGlobalInterceptors(new ResponseInterceptor());
 
-  await app.listen(process.env.PORT ?? 3000);
+  const port = configService.get<number>('PORT', 3000);
+  await app.listen(port);
   console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();

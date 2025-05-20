@@ -6,25 +6,35 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PostEntity } from './posts/entities/post.entity';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     PostsModule,
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60000, // Time to live in milliseconds (e.g., 60 seconds)
-        limit: 10, // Max requests per TTL per IP
-      },
-    ]),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost', // Assuming DB is running on localhost from Docker
-      port: 5432,
-      username: 'cagatayturkann',
-      password: 'mypassword',
-      database: 'nestjstest',
-      entities: [PostEntity],
-      synchronize: true, // Geliştirme için true, production'da false olmalı
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => [{
+        ttl: configService.get<number>('THROTTLE_TTL', 60000),
+        limit: configService.get<number>('THROTTLE_LIMIT', 10),
+      }],
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get('DB_HOST', 'localhost'),
+        port: configService.get<number>('DB_PORT', 5432),
+        username: configService.get('DB_USERNAME', 'cagatayturkann'),
+        password: configService.get('DB_PASSWORD', 'mypassword'),
+        database: configService.get('DB_DATABASE', 'nestjstest'),
+        entities: [PostEntity],
+        synchronize: configService.get('NODE_ENV') === 'development',
+      }),
     }),
   ],
   controllers: [AppController],
