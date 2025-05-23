@@ -2,7 +2,7 @@
 
 ## Proje Özeti
 
-Bu proje, NestJS framework'ü kullanılarak geliştirilmiş RESTful bir blog API'sidir. Temel amacı, blog yazılarını (post) yönetmek için CRUD (Create, Read, Update, Delete) operasyonlarını sunmaktır. Proje, PostgreSQL veritabanı ile entegre çalışmakta olup, veri erişimi için TypeORM kullanmaktadır. Ayrıca, API isteklerini sınırlama (rate limiting), standart bir yanıt formatı ve veritabanını başlangıç verileriyle doldurma (seeding) gibi özelliklere sahiptir.
+Bu proje, NestJS framework'ü kullanılarak geliştirilmiş RESTful bir blog API'sidir. Temel amacı, blog yazılarını (post) yönetmek için CRUD (Create, Read, Update, Delete) operasyonlarını sunmaktır. Proje, PostgreSQL veritabanı ile entegre çalışmakta olup, veri erişimi için TypeORM kullanmaktadır. Gelişmiş kimlik doğrulama (Authentication) ve yetkilendirme (Authorization) mekanizmalarına sahiptir; e-posta/şifre ile kayıt ve girişin yanı sıra Google OAuth 2.0 ile sosyal giriş imkanı sunar. JWT (JSON Web Tokens) tabanlı bir yetkilendirme sistemi kullanılarak korumalı endpoint'lere erişim yönetilir. Ayrıca, API isteklerini sınırlama (rate limiting), standart bir yanıt formatı ve veritabanını başlangıç verileriyle doldurma (seeding) gibi özelliklere sahiptir.
 
 Projenin temel gereksinimlerinden biri, yazıların bir "proje tanımlayıcısı" (`projectIdentifier`) ve "kısa ad" (`slug`) kombinasyonu ile benzersiz bir şekilde adreslenebilmesidir. Bu, farklı projeler veya siteler altında benzer içeriklerin yönetilebilmesine olanak tanır.
 
@@ -90,12 +90,25 @@ Projenin temel gereksinimlerinden biri, yazıların bir "proje tanımlayıcısı
 
 API endpoint'lerinin detaylı listesi ve test istekleri için lütfen projeyle birlikte sunulan `postman.json` dosyasını Postman uygulamasında import ediniz. Temel endpoint'ler:
 
-*   `POST /api/v1/posts`: Yeni bir blog yazısı oluşturur.
-*   `GET /api/v1/posts`: Tüm blog yazılarını sayfalama, sıralama ve filtreleme seçenekleriyle listeler.
-*   `GET /api/v1/posts/:id`: Belirli bir ID'ye sahip yazıyı getirir.
-*   `GET /api/v1/posts/:projectIdentifier/:slug`: Belirli bir `projectIdentifier` ve `slug` ile yazıyı getirir.
-*   `PATCH /api/v1/posts/:id`: Belirli bir ID'ye sahip yazıyı günceller.
-*   `DELETE /api/v1/posts/:id`: Belirli bir ID'ye sahip yazıyı siler.
+**Blog Yazıları (Posts):**
+
+*   `POST /api/v1/posts`: Yeni bir blog yazısı oluşturur. (Kimlik Doğrulama Gerekli)
+*   `GET /api/v1/posts`: Tüm blog yazılarını sayfalama, sıralama ve filtreleme seçenekleriyle listeler. (Herkese Açık)
+*   `GET /api/v1/posts/:id`: Belirli bir ID'ye sahip yazıyı getirir. (Herkese Açık)
+*   `GET /api/v1/posts/:projectIdentifier/:slug`: Belirli bir `projectIdentifier` ve `slug` ile yazıyı getirir. (Herkese Açık)
+*   `PATCH /api/v1/posts/:id`: Belirli bir ID'ye sahip yazıyı günceller. (Kimlik Doğrulama Gerekli)
+*   `DELETE /api/v1/posts/:id`: Belirli bir ID'ye sahip yazıyı siler. (Kimlik Doğrulama Gerekli)
+
+**Kimlik Doğrulama (Authentication):**
+
+*   `POST /api/v1/auth/register`: Yeni kullanıcı kaydı (e-posta, isim, soyisim, şifre).
+*   `POST /api/v1/auth/login`: E-posta ve şifre ile kullanıcı girişi (JWT döndürür).
+*   `GET /api/v1/auth/google`: Google ile kimlik doğrulama akışını başlatır.
+*   `GET /api/v1/auth/google/callback`: Google kimlik doğrulaması sonrası geri çağrı URL'si (JWT döndürür ve ön yüze yönlendirir).
+*   `GET /api/v1/auth/profile`: Giriş yapmış kullanıcının profil bilgilerini getirir. (Kimlik Doğrulama Gerekli)
+*   `GET /api/v1/auth/users/:id`: Belirli bir ID'ye sahip kullanıcının profil bilgilerini getirir. (Kimlik Doğrulama Gerekli)
+*   `PUT /api/v1/auth/users/:id`: Belirli bir ID'ye sahip kullanıcının profil bilgilerini günceller. (Sadece kendi profilini güncelleyebilir, Kimlik Doğrulama Gerekli)
+*   `DELETE /api/v1/auth/users/:id`: Belirli bir ID'ye sahip kullanıcıyı siler. (Sadece kendi profilini silebilir, Kimlik Doğrulama Gerekli)
 
 ## Kurulum ve Çalıştırma
 
@@ -103,15 +116,17 @@ API endpoint'lerinin detaylı listesi ve test istekleri için lütfen projeyle b
     ```bash
     npm install
     ```
-2.  **Veritabanı Kurulumu:**
-    *   Bir PostgreSQL veritabanı oluşturun.
-    *   `src/app.module.ts` içerisindeki `TypeOrmModule.forRootAsync` konfigürasyonunda veritabanı bağlantı bilgilerinizi (host, port, username, password, database name) güncelleyin. Bu bilgiler genellikle `.env` dosyası üzerinden yönetilir, ancak mevcut yapıda doğrudan konfigürasyonda yer almaktadır.
-3.  **Uygulamayı Geliştirme Modunda Başlatın:**
+2.  **Ortam Değişkenlerini Ayarlayın:**
+    *   Proje kök dizininde `env-sample` dosyasını `.env` olarak kopyalayın.
+    *   `.env` dosyasını kendi PostgreSQL veritabanı bilgileriniz (`DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASE`), JWT ayarlarınız (`JWT_SECRET`, `JWT_EXPIRES_IN`) ve Google OAuth 2.0 istemci bilgileriniz (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL`, `FRONTEND_URL`) ile güncelleyin.
+3.  **Veritabanı Kurulumu:**
+    *   Bir PostgreSQL veritabanı oluşturun (eğer `.env` dosyasında belirttiğiniz veritabanı mevcut değilse).
+4.  **Uygulamayı Geliştirme Modunda Başlatın:**
     ```bash
     npm run start:dev
     ```
-    Uygulama varsayılan olarak `http://localhost:3000` adresinde çalışacaktır. API prefix ile birlikte `http://localhost:3000/api/v1` üzerinden erişilebilir.
-4.  **Veritabanını Seed Edin (İsteğe Bağlı):**
+    Uygulama varsayılan olarak `http://localhost:3000` adresinde çalışacaktır (`.env` dosyasındaki `PORT` değerine göre). API prefix ile birlikte `http://localhost:3000/api/v1` (`.env` dosyasındaki `API_PREFIX` değerine göre) üzerinden erişilebilir.
+5.  **Veritabanını Seed Edin (İsteğe Bağlı):**
     `mock.json` dosyasındaki verilerle veritabanını doldurmak için:
     ```bash
     npm run seed
@@ -144,3 +159,62 @@ Veritabanı bağlantısı `src/app.module.ts` dosyasında `TypeOrmModule.forRoot
 *   **DTO ile Veri Doğrulama:** API'ye gelen verilerin doğruluğu ve bütünlüğü `class-validator` dekoratörleri ile DTO katmanında sağlanır. Bu, service katmanına temiz veri akışını garanti eder.
 *   **Modüler Yapı:** NestJS'in modüler yapısı sayesinde `PostsModule` gibi özellik bazlı modüller oluşturularak kod organizasyonu ve yönetimi kolaylaştırılmıştır.
 *   **Seeding Script:** Geliştirme ve test süreçlerini hızlandırmak için `mock.json` verileriyle veritabanını kolayca doldurabilme imkanı sunar.
+
+## Kimlik Doğrulama ve Yetkilendirme (Authentication & Authorization)
+
+Proje, kapsamlı bir kimlik doğrulama ve yetkilendirme sistemi içerir.
+
+### 1. E-posta/Şifre ile Kayıt ve Giriş
+
+*   **Kayıt (`POST /auth/register`):**
+    *   Kullanıcılar `email`, `firstName`, `lastName` ve `password` bilgileriyle sisteme kaydolabilir.
+    *   Giriş verileri `RegisterDto` kullanılarak doğrulanır.
+    *   Şifreler, `UserEntity` içinde `@BeforeInsert` hook'u ile `bcrypt` kullanılarak hashlenir ve veritabanına güvenli bir şekilde saklanır.
+    *   Başarılı kayıtta, şifre hariç kullanıcı bilgileri döndürülür.
+*   **Giriş (`POST /auth/login`):**
+    *   Kullanıcılar `email` ve `password` ile giriş yapar.
+    *   Giriş verileri `LoginDto` ile doğrulanır.
+    *   `UserEntity.validatePassword()` metodu (bcrypt.compare) ile şifre doğrulaması yapılır.
+    *   Başarılı girişte, kullanıcının `id` ve `email` bilgilerini içeren bir JWT (JSON Web Token) oluşturulur. Bu token, `.env` dosyasındaki `JWT_SECRET` ile imzalanır ve `JWT_EXPIRES_IN` süresi boyunca geçerlidir.
+    *   Yanıt olarak `access_token` (JWT) ve kullanıcı bilgileri (şifre hariç) döndürülür.
+
+### 2. Google ile Kimlik Doğrulama (OAuth 2.0)
+
+*   **Akış Başlatma (`GET /auth/google`):**
+    *   Bu endpoint, kullanıcıyı Google'ın kimlik doğrulama sayfasına yönlendirir.
+    *   `GoogleStrategy` (`src/auth/strategies/google.strategy.ts`) bu süreci yönetir.
+*   **Strateji Yapılandırması:**
+    *   `GoogleStrategy`, `.env` dosyasından alınan `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` ve `GOOGLE_CALLBACK_URL` ile yapılandırılır.
+    *   Google'dan `email` ve `profile` kapsamlarını talep eder.
+*   **Geri Çağrı (`GET /auth/google/callback`):**
+    *   Kullanıcı Google'da başarıyla kimliğini doğruladıktan sonra, Google bu callback URL'sine yönlendirir.
+    *   `GoogleStrategy.validate()` metodu, Google'dan gelen profil bilgilerini (isim, e-posta, resim, Google ID) alır ve `req.user` objesine ekler.
+    *   `AuthService.googleLogin()` metodu çağrılır:
+        *   **Yeni Kullanıcı:** Eğer Google e-postası ile sistemde kayıtlı bir kullanıcı yoksa, yeni bir kullanıcı (`UserEntity`) oluşturulur. `google_id` ve `picture` alanları Google profilinden doldurulur, `is_email_verified` `true` olarak ayarlanır.
+        *   **Mevcut Kullanıcı:** Eğer e-posta ile kayıtlı bir kullanıcı varsa, `google_id` bilgisi güncellenir ve `is_email_verified` `true` yapılır. Gerekirse profil resmi de güncellenir.
+        *   Her iki durumda da kullanıcı için bir JWT oluşturulur.
+    *   Son olarak, kullanıcı `.env` dosyasındaki `FRONTEND_URL` adresine, sorgu parametresinde `access_token` (JWT) ile birlikte yönlendirilir.
+
+### 3. JWT ile Yetkilendirme
+
+*   Giriş yapan kullanıcılar (e-posta/şifre veya Google ile), aldıkları JWT'yi korumalı endpoint'lere yapacakları isteklerde `Authorization: Bearer <token>` başlığında göndermelidir.
+*   `JwtStrategy` (`src/auth/strategies/jwt.strategy.ts`), bu token'ı doğrular ve içindeki kullanıcı bilgilerini (`id`, `email`) `req.user` objesine ekler.
+*   `JwtAuthGuard` (`src/auth/guards/jwt-auth.guard.ts`), `@UseGuards(JwtAuthGuard)` ile işaretlenmiş endpoint'leri korur. Sadece geçerli bir JWT'ye sahip kullanıcılar bu endpoint'lere erişebilir.
+*   **Korumalı Endpoint'ler Örnekleri:**
+    *   `POST /posts`, `PATCH /posts/:id`, `DELETE /posts/:id` (Yazı oluşturma, güncelleme, silme)
+    *   `GET /auth/profile` (Kendi profilini görme)
+    *   `GET /auth/users/:id` (Başka bir kullanıcının profilini görme)
+    *   `PUT /auth/users/:id` (Kendi profilini güncelleme)
+    *   `DELETE /auth/users/:id` (Kendi profilini silme)
+
+### 4. Kullanıcı Varlığı (`UserEntity`)
+
+*   `src/auth/entities/user.entity.ts` dosyasındaki `UserEntity`, kullanıcı bilgilerini (`id`, `email`, `first_name`, `last_name`, `password` (hashlenmiş), `google_id`, `picture`, `is_email_verified`) `users` tablosunda saklar.
+*   `password` alanı, Google ile kaydolan kullanıcılar için `null` olabilir.
+*   `is_email_verified` alanı, e-posta doğrulama süreçleri için bir temel sağlar (Google ile kayıtta otomatik `true`).
+
+### 5. Güvenlik ve Yapılandırma
+
+*   Tüm hassas bilgiler (`JWT_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` vb.) `.env` dosyasında saklanır ve `ConfigService` aracılığıyla uygulamada kullanılır.
+*   Şifreler asla düz metin olarak saklanmaz, her zaman `bcrypt` ile hashlenir.
+*   İstek sınırlaması (`ThrottlerModule`) genel olarak ve özellikle `AuthModule` için daha sıkı kurallarla yapılandırılmıştır.

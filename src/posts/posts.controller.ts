@@ -12,19 +12,29 @@ import {
   ParseUUIDPipe,
   DefaultValuePipe,
   ParseIntPipe,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Post as PostInterface } from './interfaces/post.interface'; // PostInterface olarak import ediliyor
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RequestWithUser } from '../auth/interfaces/request-with-user.interface';
 
 @Controller('posts') // Temel rota: /api/v1/posts
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
   @PostMethod() // POST /posts
+  @UseGuards(JwtAuthGuard) // Requires authentication
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createPostDto: CreatePostDto): Promise<PostInterface> {
+  async create(
+    @Body() createPostDto: CreatePostDto,
+    @Req() req: RequestWithUser
+  ): Promise<PostInterface> {
+    // You can add the user ID to the post data if needed
+    // createPostDto.userId = req.user.id;
     return this.postsService.create(createPostDto);
   }
 
@@ -78,16 +88,32 @@ export class PostsController {
   }
 
   @Patch(':id') // PATCH /posts/some-uuid
+  @UseGuards(JwtAuthGuard) // Requires authentication
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updatePostDto: UpdatePostDto,
+    @Req() req: RequestWithUser
   ): Promise<PostInterface> {
+    // In a real app, you would check if the user is the owner of the post
+    // or has admin privileges before allowing the update
+    // const post = await this.postsService.findOneById(id);
+    // if (post.userId !== req.user.id) throw new UnauthorizedException();
+    
     return this.postsService.update(id, updatePostDto);
   }
 
   @Delete(':id') // DELETE /posts/some-uuid
+  @UseGuards(JwtAuthGuard) // Requires authentication
   @HttpCode(HttpStatus.NO_CONTENT) // Başarılı silme işleminde 204 döner
-  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+  async remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: RequestWithUser
+  ): Promise<void> {
+    // In a real app, you would check if the user is the owner of the post
+    // or has admin privileges before allowing the deletion
+    // const post = await this.postsService.findOneById(id);
+    // if (post.userId !== req.user.id) throw new UnauthorizedException();
+    
     return this.postsService.remove(id);
   }
 }

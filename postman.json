@@ -7,11 +7,11 @@
 	},
 	"item": [
 		{
-			"name": "Posts",
+			"name": "Auth",
 			"item": [
 				{
-					"name": "Create Post",
-			"request": {
+					"name": "Register (Public)",
+					"request": {
 						"method": "POST",
 						"header": [
 							{
@@ -21,208 +21,465 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"title\": \"New Solana ETF Outlook From Postman\",\n    \"projectIdentifier\": \"our-news\",\n    \"slug\": \"solana-etf-outlook-postman-test\",\n    \"contentBlocks\": [\n        {\n            \"order\": 0,\n            \"content\": \"<p>This is the first content block from Postman.</p>\"\n        },\n        {\n            \"order\": 1,\n            \"title\": \"Second Block Title\",\n            \"content\": \"<p>This is the second content block with a title.</p>\"\n        }\n    ],\n    \"categories\": [\"Crypto ETFs\", \"Solana News\", \"Postman Test\"],\n    \"authors\": [\"Postman User\"],\n    \"seo\": {\n        \"title\": \"Postman Test: Solana ETF\",\n        \"description\": \"Testing Solana ETF creation via Postman.\"\n    },\n    \"featuredImage\": \"https://example.com/postman-image.jpg\",\n    \"language\": \"en\"\n}",
+							"raw": "{\n    \"email\": \"user@example.com\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"password\": \"password123\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
 								}
 							}
 						},
-				"url": {
-					"raw": "{{baseUrl}}/posts",
-					"host": [
-						"{{baseUrl}}"
-					],
-					"path": [
-						"posts"
-					]
-				},
-						"description": "Creates a new blog post. `projectIdentifier` is mandatory."
-			},
-			"response": []
-		},
-		{
-					"name": "Get All Posts",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-							"raw": "{{baseUrl}}/posts?page=1&limit=5&sort=-createdAt&projectIdentifier=our-news&lang=en&searchTerm=Solana",
-					"host": [
-						"{{baseUrl}}"
-					],
-					"path": [
-						"posts"
-					],
-					"query": [
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"description": "Register a new user with email, firstName, lastName, and password. All fields are required and password must be at least 8 characters long. Returns the created user object without the password.\n\nThis is a public endpoint that anyone can access without authentication."
+					},
+					"response": [
 						{
-							"key": "page",
-									"value": "1"
+							"name": "Successful Registration",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"user@example.com\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"password\": \"password123\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/auth/register",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"auth",
+										"register"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"id\": \"user-1684829403920\",\n    \"email\": \"user@example.com\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\"\n}"
 						},
 						{
-							"key": "limit",
-							"value": "5"
+							"name": "Validation Error",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"user@example.com\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"password\": \"short\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
 								},
-						{
-							"key": "sort",
-									"value": "-createdAt",
-									"description": "Sort field (prepend with '-' for DESC, e.g., -createdAt, title)"
-		},
-		{
-									"key": "projectIdentifier",
-									"value": "our-news",
-									"description": "Filter by project identifier (e.g., our-news)"
-								},
-						{
-							"key": "lang",
-									"value": "en",
-									"description": "Filter by language (e.g., en, tr)"
-		},
-		{
-									"key": "category",
-									"value": "Solana News",
-									"disabled": true
-								},
-								{
-									"key": "author",
-									"value": "Hannah Nelson",
-									"disabled": true
-								},
-						{
-									"key": "searchTerm",
-									"value": "Solana",
-									"description": "Search in post titles"
+								"url": {
+									"raw": "{{baseUrl}}/auth/register",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"auth",
+										"register"
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"statusCode\": 400,\n    \"message\": [\"Password must be at least 8 characters long\"],\n    \"error\": \"Bad Request\"\n}"
 						}
 					]
 				},
-						"description": "Retrieves a paginated list of posts with filtering and sorting options."
-			},
-			"response": []
-		},
-		{
-			"name": "Get Post by ID",
-					"variable": [
-						{
-							"key": "postId",
-							"value": "ENTER_POST_ID_HERE",
-							"description": "Replace with an actual post ID (UUID) after creating a post."
-						}
-					],
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{baseUrl}}/posts/{{postId}}",
-					"host": [
-						"{{baseUrl}}"
-					],
-					"path": [
-						"posts",
-						"{{postId}}"
-					]
-				},
-						"description": "Retrieves a specific post by its UUID."
-			},
-			"response": []
-		},
-		{
-					"name": "Get Post by Project and Slug",
-					"variable": [
-						{
-							"key": "projectIdentifier",
-							"value": "our-news"
-						},
-						{
-							"key": "slug",
-							"value": "solana-etf-outlook-list-of-solana-etf-filings-sec-approval"
-						}
-					],
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-							"raw": "{{baseUrl}}/posts/{{projectIdentifier}}/{{slug}}",
-					"host": [
-						"{{baseUrl}}"
-					],
-					"path": [
-						"posts",
-								"{{projectIdentifier}}",
-								"{{slug}}"
-					]
-				},
-						"description": "Retrieves a specific post by its project identifier and slug. Example values from the first post in mock.json."
-			},
-			"response": []
-		},
-		{
-					"name": "Update Post (PATCH)",
-					"variable": [
-						{
-							"key": "postIdToUpdate",
-							"value": "ENTER_POST_ID_TO_UPDATE",
-							"description": "Replace with an actual post ID (UUID) to update."
-						}
-					],
-			"request": {
-				"method": "PATCH",
-				"header": [
-					{
-						"key": "Content-Type",
+				{
+					"name": "Login (Public)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
 								"value": "application/json"
-					}
-				],
-				"body": {
-					"mode": "raw",
-							"raw": "{\n    \"title\": \"Updated Solana ETF Outlook (via Postman PATCH)\",\n    \"categories\": [\"Crypto ETFs\", \"Solana News\", \"Updated\"],\n    \"seo\": {\n        \"title\": \"Updated SEO Title for Solana ETF\",\n        \"description\": \"This post was updated via Postman PATCH request.\"\n    }\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-							"raw": "{{baseUrl}}/posts/{{postIdToUpdate}}",
-					"host": [
-						"{{baseUrl}}"
-					],
-					"path": [
-						"posts",
-								"{{postIdToUpdate}}"
-					]
-				},
-						"description": "Partially updates an existing post by its UUID."
-			},
-			"response": []
-		},
-		{
-			"name": "Delete Post",
-					"variable": [
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"password123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "Login with email and password. Both fields are required. Returns a success message and user object without the password, along with a JWT token for authentication.\n\nThis is a public endpoint that anyone can access without authentication."
+					},
+					"response": [
 						{
-							"key": "postIdToDelete",
-							"value": "ENTER_POST_ID_TO_DELETE",
-							"description": "Replace with an actual post ID (UUID) to delete."
+							"name": "Successful Login",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"password123\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/auth/login",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"auth",
+										"login"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"access_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJzdWIiOiJjOGEzN2JmZi1kOWU4LTRlYmYtYTgwZC04ODUzOWE5NmU5NmUiLCJpYXQiOjE2OTI4NzQ1NjUsImV4cCI6MTY5Mjg3ODE2NX0.f2PoH_H5zGE-wZ9AgxNIXGK-Sujap3vWkU6-wUYRSZM\",\n    \"user\": {\n        \"id\": \"c8a37bff-d9e8-4ebf-a80d-88539a96e96e\",\n        \"email\": \"user@example.com\",\n        \"first_name\": \"John\",\n        \"last_name\": \"Doe\",\n        \"is_email_verified\": false,\n        \"created_at\": \"2023-08-15T10:23:45.000Z\",\n        \"updated_at\": \"2023-08-15T10:23:45.000Z\"\n    }\n}"
+						},
+						{
+							"name": "Invalid Credentials",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"wrongpassword\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/auth/login",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"auth",
+										"login"
+									]
+								}
+							},
+							"status": "Unauthorized",
+							"code": 401,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"statusCode\": 401,\n    \"message\": \"Invalid credentials\",\n    \"error\": \"Unauthorized\"\n}"
 						}
-					],
-			"request": {
-				"method": "DELETE",
-				"header": [],
-				"url": {
-							"raw": "{{baseUrl}}/posts/{{postIdToDelete}}",
-					"host": [
-						"{{baseUrl}}"
-					],
-					"path": [
-						"posts",
-								"{{postIdToDelete}}"
 					]
 				},
-						"description": "Deletes a specific post by its UUID."
-			},
-			"response": []
-		}
-	],
-			"description": "Endpoints for managing blog posts",
+				{
+					"name": "[Auth] Google Sign-In (Initiate)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/google",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"google"
+							]
+						},
+						"description": "Initiates the Google OAuth 2.0 authentication flow. This request should typically be opened in a web browser. It will redirect the user to Google's sign-in page."
+					},
+					"response": []
+				},
+				{
+					"name": "[Auth] Google Sign-In (Callback - BİLGİLENDİRME)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/google/callback",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"google",
+								"callback"
+							],
+							"query": [
+								{
+									"key": "code",
+									"value": "GOOGLE_AUTH_CODE_HERE",
+									"description": "(This is an example, Google provides this)",
+									"disabled": true
+								}
+							]
+						},
+						"description": "INFORMATIONAL: This is the callback URL that Google redirects to after successful authentication. Your NestJS application handles this, extracts the user info, generates a JWT, and then redirects to your FRONTEND_URL with the token.\\n\\nDirectly calling this from Postman is usually not how this flow is tested. Observe the browser redirects when testing the '/auth/google' endpoint."
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Profile (Protected)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"profile"
+							]
+						},
+						"description": "Get the profile of the currently authenticated user. Requires JWT authentication."
+					},
+					"response": [
+						{
+							"name": "Successful Response",
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"id\": \"c8a37bff-d9e8-4ebf-a80d-88539a96e96e\",\n    \"email\": \"user@example.com\",\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"is_email_verified\": false,\n    \"created_at\": \"2023-08-15T10:23:45.000Z\",\n    \"updated_at\": \"2023-08-15T10:23:45.000Z\"\n}"
+						},
+						{
+							"name": "Unauthorized",
+							"status": "Unauthorized",
+							"code": 401,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"statusCode\": 401,\n    \"message\": \"Unauthorized\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Get User by ID (Protected)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/users/{{userId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"users",
+								"{{userId}}"
+							]
+						},
+						"description": "Get user details by ID. Returns the user object without the password.\n\nThis is a protected endpoint that requires JWT authentication. Any authenticated user can retrieve the profile of another user if they know their ID."
+					},
+					"response": [
+						{
+							"name": "Successful Response",
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"id\": \"c8a37bff-d9e8-4ebf-a80d-88539a96e96e\",\n    \"email\": \"user@example.com\",\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"is_email_verified\": false,\n    \"created_at\": \"2023-08-15T10:23:45.000Z\",\n    \"updated_at\": \"2023-08-15T10:23:45.000Z\"\n}"
+						},
+						{
+							"name": "Not Found",
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"statusCode\": 404,\n    \"message\": \"User not found\",\n    \"error\": \"Not Found\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Update User (Protected)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"firstName\": \"UpdatedFirstName\",\n    \"lastName\": \"UpdatedLastName\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/users/{{userIdToUpdate}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"users",
+								"{{userIdToUpdate}}"
+							]
+						},
+						"description": "Update user details by ID. Users can only update their own profiles. Requires JWT authentication."
+					},
+					"response": [
+						{
+							"name": "Successful Update",
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"id\": \"c8a37bff-d9e8-4ebf-a80d-88539a96e96e\",\n    \"email\": \"user@example.com\",\n    \"first_name\": \"UpdatedFirstName\",\n    \"last_name\": \"UpdatedLastName\",\n    \"is_email_verified\": false,\n    \"created_at\": \"2023-08-15T10:23:45.000Z\",\n    \"updated_at\": \"2023-08-15T11:45:12.000Z\"\n}"
+						},
+						{
+							"name": "Validation Error",
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"statusCode\": 400,\n    \"message\": [\"Password must be at least 8 characters long\"],\n    \"error\": \"Bad Request\"\n}"
+						},
+						{
+							"name": "Not Found",
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"statusCode\": 404,\n    \"message\": \"User not found\",\n    \"error\": \"Not Found\"\n}"
+						},
+						{
+							"name": "Email Conflict",
+							"status": "Conflict",
+							"code": 409,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"statusCode\": 409,\n    \"message\": \"Email already in use\",\n    \"error\": \"Conflict\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Delete User (Protected)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/users/{{userIdToDelete}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"users",
+								"{{userIdToDelete}}"
+							]
+						},
+						"description": "Delete a user by ID. Users can only delete their own profiles. Requires JWT authentication."
+					},
+					"response": [
+						{
+							"name": "Successful Deletion",
+							"status": "No Content",
+							"code": 204,
+							"_postman_previewlanguage": "text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						},
+						{
+							"name": "Not Found",
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"statusCode\": 404,\n    \"message\": \"User not found\",\n    \"error\": \"Not Found\"\n}"
+						}
+					]
+				}
+			],
+			"description": "User authentication and management endpoints.",
 			"event": [
 				{
 					"listen": "prerequest",
@@ -243,11 +500,288 @@
 					}
 				}
 			],
-	"variable": [
+			"variable": [
+				{
+					"key": "userId",
+					"value": "",
+					"type": "string",
+					"description": "The ID of the user to get, update, or delete. You should first register a user, then copy their ID here."
+				},
+				{
+					"key": "authToken",
+					"value": "",
+					"type": "string",
+					"description": "The JWT token received after login. Place the token value here without the 'Bearer ' prefix."
+				},
+				{
+					"key": "userIdToUpdate",
+					"value": "USER_ID_TO_UPDATE",
+					"type": "string",
+					"description": "Replace with the ID of the user you want to update (should be your own for the request to succeed)."
+				},
+				{
+					"key": "userIdToDelete",
+					"value": "USER_ID_TO_DELETE",
+					"type": "string",
+					"description": "Replace with the ID of the user you want to delete (should be your own for the request to succeed)."
+				}
+			]
+		},
 		{
-			"key": "baseUrl",
-			"value": "http://localhost:3000/api/v1",
-			"type": "string"
+			"name": "Posts",
+			"item": [
+				{
+					"name": "Create Post",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"New Solana ETF Outlook From Postman\",\n    \"projectIdentifier\": \"our-news\",\n    \"slug\": \"solana-etf-outlook-postman-test\",\n    \"contentBlocks\": [\n        {\n            \"order\": 0,\n            \"content\": \"<p>This is the first content block from Postman.</p>\"\n        },\n        {\n            \"order\": 1,\n            \"title\": \"Second Block Title\",\n            \"content\": \"<p>This is the second content block with a title.</p>\"\n        }\n    ],\n    \"categories\": [\"Crypto ETFs\", \"Solana News\", \"Postman Test\"],\n    \"authors\": [\"Postman User\"],\n    \"seo\": {\n        \"title\": \"Postman Test: Solana ETF\",\n        \"description\": \"Testing Solana ETF creation via Postman.\"\n    },\n    \"featuredImage\": \"https://example.com/postman-image.jpg\",\n    \"language\": \"en\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/posts",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"posts"
+							]
+						},
+						"description": "Creates a new blog post. `projectIdentifier` is mandatory."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Posts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/posts?page=1&limit=5&sort=-createdAt&projectIdentifier=our-news&lang=en&searchTerm=Solana",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"posts"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								},
+								{
+									"key": "sort",
+									"value": "-createdAt",
+									"description": "Sort field (prepend with '-' for DESC, e.g., -createdAt, title)"
+								},
+								{
+									"key": "projectIdentifier",
+									"value": "our-news",
+									"description": "Filter by project identifier (e.g., our-news)"
+								},
+								{
+									"key": "lang",
+									"value": "en",
+									"description": "Filter by language (e.g., en, tr)"
+								},
+								{
+									"key": "category",
+									"value": "Solana News",
+									"disabled": true
+								},
+								{
+									"key": "author",
+									"value": "Hannah Nelson",
+									"disabled": true
+								},
+								{
+									"key": "searchTerm",
+									"value": "Solana",
+									"description": "Search in post titles"
+								}
+							]
+						},
+						"description": "Retrieves a paginated list of posts with filtering and sorting options."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Post by ID",
+					"variable": [
+						{
+							"key": "postId",
+							"value": "ENTER_POST_ID_HERE",
+							"description": "Replace with an actual post ID (UUID) after creating a post."
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/posts/{{postId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"posts",
+								"{{postId}}"
+							]
+						},
+						"description": "Retrieves a specific post by its UUID."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Post by Project and Slug",
+					"variable": [
+						{
+							"key": "projectIdentifier",
+							"value": "our-news"
+						},
+						{
+							"key": "slug",
+							"value": "solana-etf-outlook-list-of-solana-etf-filings-sec-approval"
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/posts/{{projectIdentifier}}/{{slug}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"posts",
+								"{{projectIdentifier}}",
+								"{{slug}}"
+							]
+						},
+						"description": "Retrieves a specific post by its project identifier and slug. Example values from the first post in mock.json."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Post (PATCH)",
+					"variable": [
+						{
+							"key": "postIdToUpdate",
+							"value": "ENTER_POST_ID_TO_UPDATE",
+							"description": "Replace with an actual post ID (UUID) to update."
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Updated Solana ETF Outlook (via Postman PATCH)\",\n    \"categories\": [\"Crypto ETFs\", \"Solana News\", \"Updated\"],\n    \"seo\": {\n        \"title\": \"Updated SEO Title for Solana ETF\",\n        \"description\": \"This post was updated via Postman PATCH request.\"\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/posts/{{postIdToUpdate}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"posts",
+								"{{postIdToUpdate}}"
+							]
+						},
+						"description": "Partially updates an existing post by its UUID."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Post",
+					"variable": [
+						{
+							"key": "postIdToDelete",
+							"value": "ENTER_POST_ID_TO_DELETE",
+							"description": "Replace with an actual post ID (UUID) to delete."
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/posts/{{postIdToDelete}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"posts",
+								"{{postIdToDelete}}"
+							]
+						},
+						"description": "Deletes a specific post by its UUID."
+					},
+					"response": []
+				}
+			],
+			"description": "Blog post management endpoints.",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"variable": [
+				{
+					"key": "baseUrl",
+					"value": "http://localhost:3000/api/v1",
+					"type": "string"
 				}
 			]
 		}
@@ -271,5 +805,46 @@
 				]
 			}
 		}
-	]
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000/api/v1",
+			"type": "string"
+		},
+		{
+			"key": "authToken",
+			"value": "YOUR_JWT_TOKEN_HERE",
+			"type": "string",
+			"description": "Replace with the JWT token obtained after login."
+		},
+		{
+			"key": "userId",
+			"value": "USER_ID_TO_QUERY",
+			"type": "string",
+			"description": "Replace with the ID of the user you want to query."
+		},
+		{
+			"key": "userIdToUpdate",
+			"value": "USER_ID_TO_UPDATE",
+			"type": "string",
+			"description": "Replace with the ID of the user you want to update (should be your own for the request to succeed)."
+		},
+		{
+			"key": "userIdToDelete",
+			"value": "USER_ID_TO_DELETE",
+			"type": "string",
+			"description": "Replace with the ID of the user you want to delete (should be your own for the request to succeed)."
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{authToken}}",
+				"type": "string"
+			}
+		]
+	}
 }
