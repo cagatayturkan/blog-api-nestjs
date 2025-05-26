@@ -37,9 +37,8 @@ export class PostsController {
     @Body() createPostDto: CreatePostDto,
     @Req() req: RequestWithUser
   ): Promise<PostInterface> {
-    // You can add the user ID to the post data if needed
-    // createPostDto.userId = req.user.id;
-    return this.postsService.create(createPostDto);
+    // Add the user ID to the post data
+    return this.postsService.create(createPostDto, req.user.id);
   }
 
   @Get() // GET /posts veya GET /posts?page=1&limit=10&projectIdentifier=our-news&lang=en...
@@ -74,6 +73,47 @@ export class PostsController {
       category,
       author,
       searchTerm,
+      true, // Only show published posts for public endpoint
+    );
+  }
+
+  @Get('admin/all') // GET /posts/admin/all - Admin endpoint to see all posts (including drafts)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN) // Only SUPER_ADMIN can see all posts including drafts
+  async findAllForAdmin(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe)
+    page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe)
+    limit: number,
+    @Query('sort') sort?: string,
+    @Query('projectIdentifier') projectIdentifier?: string,
+    @Query('lang') lang?: string,
+    @Query('category') category?: string,
+    @Query('author') author?: string,
+    @Query('searchTerm') searchTerm?: string,
+    @Query('includeUnpublished') includeUnpublished?: string,
+  ): Promise<{ data: PostInterface[]; pagination: any }> {
+    let sortField = 'created_at';
+    let sortOrder: 'ASC' | 'DESC' = 'DESC';
+
+    if (sort) {
+      sortOrder = sort.startsWith('-') ? 'DESC' : 'ASC';
+      sortField = sort.startsWith('-') ? sort.substring(1) : sort;
+    }
+    
+    const onlyPublished = includeUnpublished !== 'true'; // Admin can choose to include unpublished
+    
+    return this.postsService.findAll(
+      page,
+      limit,
+      sortField,
+      sortOrder,
+      projectIdentifier,
+      lang,
+      category,
+      author,
+      searchTerm,
+      onlyPublished,
     );
   }
 
@@ -81,7 +121,15 @@ export class PostsController {
   @Get(':id') // GET /posts/some-uuid
   // Public endpoint - all users can read posts (including READ_ONLY)
   async findOneById(@Param('id', ParseUUIDPipe) id: string): Promise<PostInterface> {
-    return this.postsService.findOneById(id);
+    return this.postsService.findOneById(id, false); // Only published posts for public
+  }
+
+  // Admin endpoint to get any post by ID (including unpublished)
+  @Get('admin/:id') // GET /posts/admin/some-uuid
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN) // Only SUPER_ADMIN can see unpublished posts
+  async findOneByIdForAdmin(@Param('id', ParseUUIDPipe) id: string): Promise<PostInterface> {
+    return this.postsService.findOneById(id, true); // Include unpublished posts
   }
 
   // Proje ve Slug ile getirme
@@ -102,12 +150,7 @@ export class PostsController {
     @Body() updatePostDto: UpdatePostDto,
     @Req() req: RequestWithUser
   ): Promise<PostInterface> {
-    // In a real app, you would check if the user is the owner of the post
-    // or has admin privileges before allowing the update
-    // const post = await this.postsService.findOneById(id);
-    // if (post.userId !== req.user.id) throw new UnauthorizedException();
-    
-    return this.postsService.update(id, updatePostDto);
+    return this.postsService.update(id, updatePostDto, req.user.id, req.user.role);
   }
 
   @Delete(':id') // DELETE /posts/some-uuid
@@ -118,11 +161,6 @@ export class PostsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Req() req: RequestWithUser
   ): Promise<void> {
-    // In a real app, you would check if the user is the owner of the post
-    // or has admin privileges before allowing the deletion
-    // const post = await this.postsService.findOneById(id);
-    // if (post.userId !== req.user.id) throw new UnauthorizedException();
-    
-    return this.postsService.remove(id);
+    return this.postsService.remove(id, req.user.id, req.user.role);
   }
 }

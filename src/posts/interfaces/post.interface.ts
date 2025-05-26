@@ -21,6 +21,7 @@ export interface Post {
   seo?: SeoData; // Optional SEO data
   featuredImage?: string; // Optional featured image URL
   language: string;
+  isPublished: boolean; // Publication status
   createdAt: Date;
   updatedAt: Date;
 }

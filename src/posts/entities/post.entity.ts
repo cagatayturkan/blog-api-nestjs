@@ -48,6 +48,9 @@ export class PostEntity {
   @Column({ type: 'text', nullable: false })
   language: string;
 
+  @Column({ type: 'boolean', default: false }) // Posts start as drafts by default
+  is_published: boolean;
+
   @Column({ type: 'text', nullable: true }) // user_id'yi şimdilik text olarak tutalım
   user_id_ref: string | null; 
 

@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -50,6 +51,10 @@ export class CreatePostDto {
   @IsString()
   @IsNotEmpty()
   language: string; // e.g., 'en', 'tr'
+
+  @IsOptional()
+  @IsBoolean()
+  isPublished?: boolean; // Optional, defaults to false (draft)
 
   // userId is typically handled by the authentication system, not passed in DTO
   // createdAt and updatedAt are handled by the service/database

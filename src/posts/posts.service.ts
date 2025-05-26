@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindManyOptions, Like } from 'typeorm';
+import { Repository, FindManyOptions, Like, Not } from 'typeorm';
 import { PostEntity } from './entities/post.entity';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
@@ -32,6 +32,7 @@ export class PostsService {
       seo: entity.seo_data || undefined, // entity.seo_data null ise undefined olur
       featuredImage: entity.featured_image_url || undefined, // entity.featured_image_url null ise undefined olur
       language: entity.language,
+      isPublished: entity.is_published,
       createdAt: entity.created_at,
       updatedAt: entity.updated_at,
     };
@@ -49,7 +50,8 @@ export class PostsService {
     entity.seo_data = dto.seo ? { title: dto.seo.title, description: dto.seo.description } : null; 
     entity.featured_image_url = dto.featuredImage || null; 
     entity.language = dto.language;
-    entity.user_id_ref = 'temp-user-id'; // TODO: Bu dinamik olmalı, örn: auth bilgisi veya DTO
+    entity.is_published = dto.isPublished ?? false; // Default to false (draft)
+    // user_id_ref will be set in the create method
     return entity;
   }
 
@@ -64,8 +66,44 @@ export class PostsService {
       .replace(/-+$/, ''); 
   }
 
-  async create(createPostDto: CreatePostDto): Promise<PostInterface> {
+  // Unique slug oluşturma (project içinde benzersiz olması için)
+  private async generateUniqueSlug(title: string, projectIdentifier: string, excludeId?: string): Promise<string> {
+    let baseSlug = this.generateSlug(title);
+    let slug = baseSlug;
+    let counter = 1;
+
+    while (true) {
+      const whereConditions: any = {
+        project_identifier: projectIdentifier,
+        slug: slug,
+      };
+      
+      // Update işleminde mevcut post'u hariç tut
+      if (excludeId) {
+        whereConditions.id = Not(excludeId);
+      }
+
+      const existingPost = await this.postsRepository.findOneBy(whereConditions);
+      
+      if (!existingPost) {
+        return slug; // Bu slug kullanılabilir
+      }
+      
+      // Slug zaten var, sayı ekle
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+  }
+
+  async create(createPostDto: CreatePostDto, userId: string): Promise<PostInterface> {
     const partialEntity = this.mapCreateDtoToEntity(createPostDto);
+    partialEntity.user_id_ref = userId; // Set the actual user ID
+    
+    // Unique slug oluştur
+    if (!createPostDto.slug) {
+      partialEntity.slug = await this.generateUniqueSlug(createPostDto.title, createPostDto.projectIdentifier);
+    }
+    
     const newPostEntity = this.postsRepository.create(partialEntity as PostEntity); 
     await this.postsRepository.save(newPostEntity);
     return this.mapEntityToInterface(newPostEntity);
@@ -81,12 +119,14 @@ export class PostsService {
     category?: string,
     author?: string,
     searchTerm?: string,
+    onlyPublished = true, // By default, show only published posts for public endpoints
   ): Promise<{ data: PostInterface[]; pagination: any }> {
     const skip = (page - 1) * limit;
 
     const whereConditions: any = {};
     if (projectIdentifier) whereConditions.project_identifier = projectIdentifier;
     if (lang) whereConditions.language = lang;
+    if (onlyPublished) whereConditions.is_published = true;
     if (searchTerm) {
         whereConditions.title = Like(`%${searchTerm}%`); 
     }
@@ -123,8 +163,13 @@ export class PostsService {
     };
   }
 
-  async findOneById(id: string): Promise<PostInterface> {
-    const entity = await this.postsRepository.findOneBy({ id });
+  async findOneById(id: string, includeUnpublished = false): Promise<PostInterface> {
+    const whereConditions: any = { id };
+    if (!includeUnpublished) {
+      whereConditions.is_published = true;
+    }
+    
+    const entity = await this.postsRepository.findOneBy(whereConditions);
     if (!entity) {
       throw new NotFoundException(`Post with ID "${id}" not found`);
     }
@@ -134,11 +179,17 @@ export class PostsService {
   async findOneBySlugAndProject(
     projectIdentifier: string,
     slug: string,
+    includeUnpublished = false,
   ): Promise<PostInterface> {
-    const entity = await this.postsRepository.findOneBy({
+    const whereConditions: any = {
       project_identifier: projectIdentifier,
       slug: slug,
-    });
+    };
+    if (!includeUnpublished) {
+      whereConditions.is_published = true;
+    }
+    
+    const entity = await this.postsRepository.findOneBy(whereConditions);
     if (!entity) {
       throw new NotFoundException(
         `Post with slug "${slug}" in project "${projectIdentifier}" not found`,
@@ -150,17 +201,29 @@ export class PostsService {
   async update(
     id: string,
     updatePostDto: UpdatePostDto,
+    userId: string,
+    userRole: string,
   ): Promise<PostInterface> {
     const existingEntityToUpdate = await this.postsRepository.findOneBy({ id });
     if (!existingEntityToUpdate) {
       throw new NotFoundException(`Post with ID "${id}" not found for update`);
     }
 
+    // Check ownership: Only SUPER_ADMIN or the post owner can update
+    if (userRole !== 'SUPER_ADMIN' && existingEntityToUpdate.user_id_ref !== userId) {
+      throw new ForbiddenException('You can only update your own posts');
+    }
+
     const changes = this.mapUpdateDtoToEntityChanges(updatePostDto);
     Object.assign(existingEntityToUpdate, changes);
     
+    // Title değiştirildiğinde ve slug belirtilmediyse unique slug oluştur
     if (updatePostDto.title && !updatePostDto.slug) {
-        existingEntityToUpdate.slug = this.generateSlug(updatePostDto.title);
+        existingEntityToUpdate.slug = await this.generateUniqueSlug(
+          updatePostDto.title, 
+          existingEntityToUpdate.project_identifier,
+          existingEntityToUpdate.id
+        );
     }
 
     await this.postsRepository.save(existingEntityToUpdate);
@@ -179,7 +242,8 @@ export class PostsService {
       authors: { field: 'authors', transform: (value: string[]) => value },
       seo: { field: 'seo_data', transform: (value: any) => value ? { title: value.title, description: value.description } : null },
       featuredImage: { field: 'featured_image_url', transform: (value: string) => value || null },
-      language: { field: 'language', transform: (value: string) => value }
+      language: { field: 'language', transform: (value: string) => value },
+      isPublished: { field: 'is_published', transform: (value: boolean) => value }
     };
 
     const changes: Partial<PostEntity> = {};
@@ -194,10 +258,17 @@ export class PostsService {
     return changes;
   }
 
-  async remove(id: string): Promise<void> {
-    const result = await this.postsRepository.delete(id);
-    if (result.affected === 0) {
+  async remove(id: string, userId: string, userRole: string): Promise<void> {
+    const existingEntity = await this.postsRepository.findOneBy({ id });
+    if (!existingEntity) {
       throw new NotFoundException(`Post with ID "${id}" not found`);
     }
+
+    // Check ownership: Only SUPER_ADMIN or the post owner can delete
+    if (userRole !== 'SUPER_ADMIN' && existingEntity.user_id_ref !== userId) {
+      throw new ForbiddenException('You can only delete your own posts');
+    }
+
+    await this.postsRepository.delete(id);
   }
 }

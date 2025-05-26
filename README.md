@@ -161,7 +161,7 @@ ADMIN_LAST_NAME=Your_LastName
 
 #### Default Values (development only):
 - **Email**: `admin@blog.com`
-- **Password**: `admin123`
+- **Password**: `your_secure_admin_password`
 - **Role**: `SUPER_ADMIN`
 
 **⚠️ Security Note**: 
@@ -323,7 +323,7 @@ Authorization: Bearer your_access_token
 # Admin login
 curl -X POST "http://localhost:3000/api/v1/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email": "admin@blog.com", "password": "admin123"}'
+  -d '{"email": "admin@blog.com", "password": "your_secure_admin_password"}'
 
 # Create a writer account
 curl -X POST "http://localhost:3000/api/v1/auth/register" \
@@ -391,6 +391,78 @@ Import the provided `postman.json` collection which includes:
 2. **Role-based Examples**: Different scenarios for each role
 3. **Error Handling**: Examples of forbidden access attempts
 4. **Token Management**: Login, refresh, and logout flows
+5. **🔒 Security Test Suite**: Complete test flow for validating all security controls
+
+### 🔒 Security Test Flow (Run in Order)
+
+The collection includes a comprehensive **"Security Tests (Run in Order)"** folder that validates all security controls:
+
+#### Test Flow Steps:
+1. **Setup - Admin Login** 🔐
+   - Login as SUPER_ADMIN to get admin access token
+   
+2. **Setup - Create Test User** 👤
+   - Create a regular USER for testing ownership controls
+   
+3. **Setup - Test User Login** 🔑
+   - Login as test user to get their access token
+   
+4. **Setup - Create ReadOnly User** 📖
+   - Create a user that will be converted to READ_ONLY role
+   
+5. **Setup - Change User to ReadOnly** ⚙️
+   - Admin changes user role to READ_ONLY
+   
+6. **Setup - ReadOnly User Login** 🔐
+   - Login as READ_ONLY user to get their token
+   
+7. **Test - User Creates Own Post** ✅
+   - Regular user creates their own post (should succeed)
+   
+8. **Test - Get All Posts (Find Target Post)** 🔍
+   - Get posts to find one owned by another user for testing
+   
+9. **Test - User Tries to Update Other's Post** ❌
+   - User attempts to update another user's post (should fail with 403)
+   
+10. **Test - User Tries to Delete Other's Post** ❌
+    - User attempts to delete another user's post (should fail with 403)
+    
+11. **Test - User Updates Own Post** ✅
+    - User updates their own post (should succeed)
+    
+12. **Test - Admin Updates Any Post** ✅
+    - Admin updates any user's post (should succeed)
+    
+13. **Test - ReadOnly User Tries to Create Post** ❌
+    - READ_ONLY user attempts to create a post (should fail with 403)
+    
+14. **Test - ReadOnly User Reads Posts** ✅
+    - READ_ONLY user reads posts (should succeed)
+    
+15. **Security Test Summary** 🎯
+    - Final summary of all security test results
+
+#### Expected Results:
+✅ **SHOULD SUCCEED:**
+- Admin login and token retrieval
+- User registration and login  
+- Role changes by admin
+- Users creating their own posts
+- Users updating their own posts
+- Admin updating any post
+- READ_ONLY users reading posts
+
+❌ **SHOULD FAIL (Security Working):**
+- Users updating/deleting other users' posts (403 Forbidden)
+- READ_ONLY users creating posts (403 Forbidden)
+
+#### Automated Validation:
+Each test includes automatic assertions that validate:
+- Correct HTTP status codes
+- Proper error messages
+- Expected response structure
+- Security controls are enforced
 
 ### Key Test Scenarios:
 
@@ -410,6 +482,12 @@ Import the provided `postman.json` collection which includes:
    - Login as read-only user
    - Read posts (should work)
    - Attempt to create posts (should fail with 403)
+
+4. **🆕 Security Validation Workflow:**
+   - Complete role-based access control testing
+   - Post ownership validation
+   - Proper error handling verification
+   - Token-based authentication testing
 
 ## 🔒 Security Features
 

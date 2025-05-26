@@ -3,6 +3,7 @@ import { AppModule } from '../app.module'; // Ana app modülümüz
 import { PostsService } from '../posts/posts.service';
 import { CreatePostDto } from '../posts/dto/create-post.dto';
 import { PostEntity } from '../posts/entities/post.entity'; // Var olanları kontrol için gerekebilir
+import { UserRepository } from '../auth/repositories/user.repository';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -30,8 +31,24 @@ interface MockPost {
 async function bootstrap() {
   const appContext = await NestFactory.createApplicationContext(AppModule);
   const postsService = appContext.get(PostsService);
+  const userRepository = appContext.get(UserRepository);
 
   console.log('Seeding database...');
+
+  // Find admin user to assign posts to
+  let adminUserId: string;
+  try {
+    const adminUser = await userRepository.findByEmail('admin@blog.com');
+    if (!adminUser) {
+      throw new Error('Admin user not found');
+    }
+    adminUserId = adminUser.id;
+    console.log(`Found admin user with ID: ${adminUserId}`);
+  } catch (error) {
+    console.error('Admin user not found. Please run the admin seeder first.');
+    await appContext.close();
+    return;
+  }
 
   const mockFilePath = path.join(__dirname, '../../mock.json');
   let mockData: MockPost[];
@@ -88,7 +105,7 @@ async function bootstrap() {
     };
 
     try {
-      await postsService.create(createPostDto);
+      await postsService.create(createPostDto, adminUserId);
       seededCount++;
     } catch (error) {
       console.error(`Error seeding post ${createPostDto.projectIdentifier}/${createPostDto.slug}:`, error.message);
