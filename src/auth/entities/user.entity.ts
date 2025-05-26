@@ -8,6 +8,7 @@ import {
   BeforeInsert,
 } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { UserRole } from '../enums/user-role.enum';
 
 @Entity('users') // Database table name
 @Index(['email'], { unique: true }) // Make email unique
@@ -35,6 +36,16 @@ export class UserEntity {
 
   @Column({ type: 'boolean', default: false })
   is_email_verified: boolean;
+
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.USER,
+  })
+  role: UserRole;
+
+  @Column({ type: 'text', nullable: true })
+  refresh_token: string;
 
   @CreateDateColumn()
   created_at: Date;

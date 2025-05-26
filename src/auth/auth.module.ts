@@ -10,6 +10,7 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { GoogleStrategy } from './strategies/google.strategy';
+import { AdminSeeder } from './seeders/admin.seeder';
 
 @Module({
   imports: [
@@ -32,7 +33,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, UserRepository, JwtStrategy, GoogleStrategy],
+  providers: [AuthService, UserRepository, JwtStrategy, GoogleStrategy, AdminSeeder],
   exports: [PassportModule, JwtStrategy],
 })
 export class AuthModule {} 

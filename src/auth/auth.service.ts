@@ -1,17 +1,23 @@
 import { Injectable, UnauthorizedException, ConflictException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { LogoutDto } from './dto/logout.dto';
 import { UserRepository, GoogleUserDto } from './repositories/user.repository';
 import { UserEntity } from './entities/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserRole } from './enums/user-role.enum';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<Partial<UserEntity>> {
@@ -29,7 +35,7 @@ export class AuthService {
     return result;
   }
 
-  async login(loginDto: LoginDto): Promise<{ access_token: string, user: Partial<UserEntity> }> {
+  async login(loginDto: LoginDto): Promise<{ access_token: string, refresh_token: string, user: Partial<UserEntity> }> {
     // Find the user with the provided email
     const user = await this.userRepository.findByEmail(loginDto.email);
     
@@ -38,22 +44,37 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Generate JWT token
+    // Check email verification if required
+    const requireEmailVerificationRaw = this.configService.get<string>('REQUIRE_EMAIL_VERIFICATION', 'false');
+    const requireEmailVerification = requireEmailVerificationRaw === 'true';
+    
+    if (requireEmailVerification && !user.is_email_verified) {
+      throw new UnauthorizedException('Email verification required. Please verify your email address before logging in.');
+    }
+
+    // Generate tokens
     const payload = { 
       email: user.email, 
       sub: user.id,
     };
     
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken = this.generateRefreshToken();
+    
+    // Save refresh token to database
+    await this.userRepository.updateRefreshToken(user.id, refreshToken);
+    
     // Don't include password in the response
     const { password, ...result } = user;
     
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: accessToken,
+      refresh_token: refreshToken,
       user: result
     };
   }
 
-  async googleLogin(googleUser: any): Promise<{ access_token: string, user: Partial<UserEntity> }> {
+  async googleLogin(googleUser: any): Promise<{ access_token: string, refresh_token: string, user: Partial<UserEntity> }> {
     // Check if user exists in our database by email
     let user = await this.userRepository.findByEmail(googleUser.email);
     
@@ -73,7 +94,7 @@ export class AuthService {
       // Update existing user with Google information if needed
       const updateData: Partial<UserEntity> = {
         google_id: googleUser.id || googleUser.sub,
-        is_email_verified: true,
+        is_email_verified: true, // Google login always verifies email
       };
       
       // Only update picture if user doesn't have one already
@@ -89,17 +110,31 @@ export class AuthService {
       throw new UnauthorizedException('Failed to authenticate with Google');
     }
 
-    // Generate JWT token
+    // Check email verification if required (though Google users should always be verified)
+    const requireEmailVerificationRaw = this.configService.get<string>('REQUIRE_EMAIL_VERIFICATION', 'false');
+    const requireEmailVerification = requireEmailVerificationRaw === 'true';
+    if (requireEmailVerification && !user.is_email_verified) {
+      throw new UnauthorizedException('Email verification required. Please verify your email address before logging in.');
+    }
+
+    // Generate tokens
     const payload = { 
       email: user.email, 
       sub: user.id,
     };
     
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken = this.generateRefreshToken();
+    
+    // Save refresh token to database
+    await this.userRepository.updateRefreshToken(user.id, refreshToken);
+    
     // Don't include password in the response
     const { password, ...result } = user;
     
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: accessToken,
+      refresh_token: refreshToken,
       user: result
     };
   }
@@ -167,5 +202,78 @@ export class AuthService {
     // Don't return the password in the response
     const { password, ...result } = user;
     return result;
+  }
+
+  async getAllUsers(): Promise<Partial<UserEntity>[]> {
+    const users = await this.userRepository.findAll();
+    
+    // Remove passwords from response
+    return users.map(user => {
+      const { password, ...result } = user;
+      return result;
+    });
+  }
+
+  async updateUserRole(id: string, role: UserRole): Promise<Partial<UserEntity>> {
+    // Check if user exists
+    const user = await this.userRepository.findById(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Update user role
+    const updatedUser = await this.userRepository.update(id, { role });
+    if (!updatedUser) {
+      throw new NotFoundException('Failed to update user role');
+    }
+
+    // Don't return the password in the response
+    const { password, ...result } = updatedUser;
+    return result;
+  }
+
+  // Refresh token methods
+  private generateRefreshToken(): string {
+    return crypto.randomBytes(32).toString('hex');
+  }
+
+  async refreshToken(refreshTokenDto: RefreshTokenDto): Promise<{ access_token: string, refresh_token: string }> {
+    const { refresh_token } = refreshTokenDto;
+    
+    // Find user by refresh token
+    const user = await this.userRepository.findByRefreshToken(refresh_token);
+    if (!user) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    // Generate new tokens
+    const payload = { 
+      email: user.email, 
+      sub: user.id,
+    };
+    
+    const accessToken = this.jwtService.sign(payload);
+    const newRefreshToken = this.generateRefreshToken();
+    
+    // Update refresh token in database (token rotation)
+    await this.userRepository.updateRefreshToken(user.id, newRefreshToken);
+    
+    return {
+      access_token: accessToken,
+      refresh_token: newRefreshToken,
+    };
+  }
+
+  async logout(logoutDto: LogoutDto): Promise<void> {
+    const { refresh_token } = logoutDto;
+    
+    // Find user by refresh token
+    const user = await this.userRepository.findByRefreshToken(refresh_token);
+    if (!user) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    // Remove refresh token from database  
+    await this.userRepository.updateRefreshToken(user.id, null);
   }
 } 

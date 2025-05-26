@@ -53,6 +53,12 @@ export class UserRepository {
     return this.userRepository.findOne({ where: { id } });
   }
 
+  async findAll(): Promise<UserEntity[]> {
+    return this.userRepository.find({
+      order: { created_at: 'DESC' }
+    });
+  }
+
   async update(id: string, updateData: Partial<UserEntity>): Promise<UserEntity | null> {
     await this.userRepository.update(id, updateData);
     return this.findById(id);
@@ -60,5 +66,15 @@ export class UserRepository {
 
   async remove(id: string): Promise<void> {
     await this.userRepository.delete(id);
+  }
+
+  async findByRefreshToken(refreshToken: string): Promise<UserEntity | null> {
+    return this.userRepository.findOne({ where: { refresh_token: refreshToken } });
+  }
+
+  async updateRefreshToken(id: string, refreshToken: string | null | undefined): Promise<void> {
+    await this.userRepository.update(id, { 
+      refresh_token: refreshToken === null ? null : refreshToken 
+    } as any);
   }
 } 

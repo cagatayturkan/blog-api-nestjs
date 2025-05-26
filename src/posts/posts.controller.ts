@@ -20,6 +20,9 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Post as PostInterface } from './interfaces/post.interface'; // PostInterface olarak import ediliyor
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../auth/enums/user-role.enum';
 import { RequestWithUser } from '../auth/interfaces/request-with-user.interface';
 
 @Controller('posts') // Temel rota: /api/v1/posts
@@ -27,7 +30,8 @@ export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
   @PostMethod() // POST /posts
-  @UseGuards(JwtAuthGuard) // Requires authentication
+  @UseGuards(JwtAuthGuard, RolesGuard) // Requires authentication and role check
+  @Roles(UserRole.SUPER_ADMIN, UserRole.USER) // READ_ONLY cannot create posts
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() createPostDto: CreatePostDto,
@@ -39,6 +43,7 @@ export class PostsController {
   }
 
   @Get() // GET /posts veya GET /posts?page=1&limit=10&projectIdentifier=our-news&lang=en...
+  // Public endpoint - all users can read posts (including READ_ONLY)
   async findAll(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe)
     page: number,
@@ -74,12 +79,14 @@ export class PostsController {
 
   // ID ile getirme (UUID)
   @Get(':id') // GET /posts/some-uuid
+  // Public endpoint - all users can read posts (including READ_ONLY)
   async findOneById(@Param('id', ParseUUIDPipe) id: string): Promise<PostInterface> {
     return this.postsService.findOneById(id);
   }
 
   // Proje ve Slug ile getirme
   @Get(':projectIdentifier/:slug') // GET /posts/our-news/example-post-slug
+  // Public endpoint - all users can read posts (including READ_ONLY)
   async findOneBySlugAndProject(
     @Param('projectIdentifier') projectIdentifier: string,
     @Param('slug') slug: string,
@@ -88,7 +95,8 @@ export class PostsController {
   }
 
   @Patch(':id') // PATCH /posts/some-uuid
-  @UseGuards(JwtAuthGuard) // Requires authentication
+  @UseGuards(JwtAuthGuard, RolesGuard) // Requires authentication and role check
+  @Roles(UserRole.SUPER_ADMIN, UserRole.USER) // READ_ONLY cannot update posts
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updatePostDto: UpdatePostDto,
@@ -103,7 +111,8 @@ export class PostsController {
   }
 
   @Delete(':id') // DELETE /posts/some-uuid
-  @UseGuards(JwtAuthGuard) // Requires authentication
+  @UseGuards(JwtAuthGuard, RolesGuard) // Requires authentication and role check
+  @Roles(UserRole.SUPER_ADMIN, UserRole.USER) // READ_ONLY cannot delete posts
   @HttpCode(HttpStatus.NO_CONTENT) // Başarılı silme işleminde 204 döner
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
