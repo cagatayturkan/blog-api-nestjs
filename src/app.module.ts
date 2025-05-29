@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PostsModule } from './posts/posts.module';
@@ -9,6 +9,17 @@ import { PostEntity } from './posts/entities/post.entity';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { UserEntity } from './auth/entities/user.entity';
+import { TokenBlacklistEntity } from './auth/entities/token-blacklist.entity';
+import { PasswordResetEntity } from './auth/entities/password-reset.entity';
+import { ProjectEntity } from './projects/entities/project.entity';
+import { CategoryEntity } from './categories/entities/category.entity';
+import { UserProjectEntity } from './user-projects/entities/user-project.entity';
+import { UserProjectsModule } from './user-projects/user-projects.module';
+import { ProjectsModule } from './projects/projects.module';
+import { CategoriesModule } from './categories/categories.module';
+import { ProjectFilterMiddleware } from './common/middleware/project-filter.middleware';
+import { PostsController } from './posts/posts.controller';
+import { CategoriesController } from './categories/categories.controller';
 
 @Module({
   imports: [
@@ -17,6 +28,9 @@ import { UserEntity } from './auth/entities/user.entity';
     }),
     PostsModule,
     AuthModule,
+    UserProjectsModule,
+    ProjectsModule,
+    CategoriesModule,
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -35,10 +49,11 @@ import { UserEntity } from './auth/entities/user.entity';
         username: configService.get('DB_USERNAME', 'cagatayturkann'),
         password: configService.get('DB_PASSWORD', 'mypassword'),
         database: configService.get('DB_DATABASE', 'nestjstest'),
-        entities: [PostEntity, UserEntity],
+        entities: [PostEntity, UserEntity, TokenBlacklistEntity, ProjectEntity, CategoryEntity, UserProjectEntity, PasswordResetEntity],
         synchronize: configService.get('NODE_ENV') === 'development',
       }),
     }),
+    TypeOrmModule.forFeature([ProjectEntity]),
   ],
   controllers: [AppController],
   providers: [
@@ -47,6 +62,13 @@ import { UserEntity } from './auth/entities/user.entity';
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
+    ProjectFilterMiddleware,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(ProjectFilterMiddleware)
+      .forRoutes(PostsController, CategoriesController);
+  }
+}

@@ -6,9 +6,12 @@ import {
   UpdateDateColumn,
   Index,
   BeforeInsert,
+  OneToMany,
 } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { UserRole } from '../enums/user-role.enum';
+import { UserProjectEntity } from '../../user-projects/entities/user-project.entity';
+import { PostEntity } from '../../posts/entities/post.entity';
 
 @Entity('users') // Database table name
 @Index(['email'], { unique: true }) // Make email unique
@@ -46,6 +49,14 @@ export class UserEntity {
 
   @Column({ type: 'text', nullable: true })
   refresh_token: string;
+
+  // One user can be assigned to many projects
+  @OneToMany(() => UserProjectEntity, (userProject) => userProject.user)
+  userProjects: UserProjectEntity[];
+
+  // One user can author many posts
+  @OneToMany(() => PostEntity, (post) => post.user)
+  posts: PostEntity[];
 
   @CreateDateColumn()
   created_at: Date;

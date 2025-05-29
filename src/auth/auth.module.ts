@@ -3,7 +3,12 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserEntity } from './entities/user.entity';
+import { TokenBlacklistEntity } from './entities/token-blacklist.entity';
+import { PasswordResetEntity } from './entities/password-reset.entity';
 import { UserRepository } from './repositories/user.repository';
+import { TokenBlacklistService } from './services/token-blacklist.service';
+import { PasswordResetService } from './services/password-reset.service';
+import { MailService } from './services/mail.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
@@ -11,11 +16,13 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { AdminSeeder } from './seeders/admin.seeder';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserEntity]),
+    TypeOrmModule.forFeature([UserEntity, TokenBlacklistEntity, PasswordResetEntity]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
+    ScheduleModule.forRoot(),
     // Specific rate limiting for auth module (stricter than global)
     ThrottlerModule.forRoot([{
       ttl: 60, // 60 seconds
@@ -33,7 +40,7 @@ import { AdminSeeder } from './seeders/admin.seeder';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, UserRepository, JwtStrategy, GoogleStrategy, AdminSeeder],
-  exports: [PassportModule, JwtStrategy],
+  providers: [AuthService, UserRepository, TokenBlacklistService, PasswordResetService, MailService, JwtStrategy, GoogleStrategy, AdminSeeder],
+  exports: [PassportModule, JwtStrategy, TokenBlacklistService],
 })
 export class AuthModule {} 

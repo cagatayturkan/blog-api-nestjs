@@ -1,0 +1,1987 @@
+{
+	"info": {
+		"_postman_id": "blog-api-collection",
+		"name": "Blog REST API - Complete Test Suite",
+		"description": "Comprehensive test collection for Blog REST API with JWT Session Management",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "🔐 Authentication Flow",
+			"item": [
+				{
+					"name": "1. Register New User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('testUserId', response.data.id);",
+									"    pm.environment.set('testUserEmail', response.data.email);",
+									"    console.log('✅ User registered successfully');",
+									"} else {",
+									"    console.log('❌ Registration failed');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{testUserEmail}}\",\n  \"password\": \"{{testUserPassword}}\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "2. Admin Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('adminToken', response.data.access_token);",
+									"    pm.environment.set('adminRefreshToken', response.data.refresh_token);",
+									"    pm.environment.set('adminUserId', response.data.user.id);",
+									"    console.log('✅ Admin logged in successfully');",
+									"} else {",
+									"    console.log('❌ Admin login failed');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "3. Test User Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('userToken', response.data.access_token);",
+									"    pm.environment.set('userRefreshToken', response.data.refresh_token);",
+									"    console.log('✅ User logged in successfully');",
+									"} else {",
+									"    console.log('❌ User login failed');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{testUserEmail}}\",\n  \"password\": \"{{testUserPassword}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "4. Get Admin Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "profile"]
+						}
+					}
+				},
+				{
+					"name": "5. Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('adminToken', response.data.access_token);",
+									"    pm.environment.set('adminRefreshToken', response.data.refresh_token);",
+									"    console.log('✅ Token refreshed successfully');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refresh_token\": \"{{adminRefreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/refresh",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "refresh"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🔒 Session Management",
+			"item": [
+				{
+					"name": "1. Change Password (Authenticated)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"oldPassword\": \"{{adminPassword}}\",\n  \"newPassword\": \"{{newAdminPassword}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/change-password",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "change-password"]
+						}
+					}
+				},
+				{
+					"name": "2. Forgot Password Request",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    console.log('✅ Forgot password email sent');",
+									"    console.log('📧 Check your email for reset token');",
+									"} else {",
+									"    console.log('❌ Forgot password request failed');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{forgotPasswordEmail}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/forgot-password",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "forgot-password"]
+						}
+					}
+				},
+				{
+					"name": "3. Validate Reset Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.data.valid) {",
+									"        console.log('✅ Reset token is valid');",
+									"        console.log('📧 Email: ' + response.data.email);",
+									"    } else {",
+									"        console.log('❌ Reset token is invalid or expired');",
+									"    }",
+									"} else {",
+									"    console.log('❌ Token validation failed');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"{{resetToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/validate-reset-token",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "validate-reset-token"]
+						}
+					}
+				},
+				{
+					"name": "4. Reset Password with Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    console.log('✅ Password reset successfully');",
+									"    console.log('🔑 You can now login with new password');",
+									"} else {",
+									"    console.log('❌ Password reset failed');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"{{resetToken}}\",\n  \"newPassword\": \"{{newPasswordAfterReset}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/reset-password-with-token",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "reset-password-with-token"]
+						}
+					}
+				},
+				{
+					"name": "5. Login with New Password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('resetUserToken', response.data.access_token);",
+									"    console.log('✅ Login successful with new password');",
+									"} else {",
+									"    console.log('❌ Login failed with new password');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{forgotPasswordEmail}}\",\n  \"password\": \"{{newPasswordAfterReset}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "6. Test Token Reuse (Should Fail)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (!response.data.valid) {",
+									"        console.log('✅ Token correctly invalidated after use');",
+									"    } else {",
+									"        console.log('❌ Security issue: Token can be reused');",
+									"    }",
+									"} else {",
+									"    console.log('❌ Token reuse test failed');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"{{resetToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/validate-reset-token",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "validate-reset-token"]
+						}
+					}
+				},
+				{
+					"name": "7. Logout Single Device",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{userToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refresh_token\": \"{{userRefreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/logout",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "logout"]
+						}
+					}
+				},
+				{
+					"name": "8. Logout All Devices",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/logout-all-devices",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "logout-all-devices"]
+						}
+					}
+				},
+				{
+					"name": "9. Test Blacklisted Token",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "profile"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "👥 User Management",
+			"item": [
+				{
+					"name": "1. Get All Users (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "users"]
+						}
+					}
+				},
+				{
+					"name": "2. Get User by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/users/{{testUserId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "users", "{{testUserId}}"]
+						}
+					}
+				},
+				{
+					"name": "3. Update User",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Updated\",\n  \"lastName\": \"User\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/users/{{testUserId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "users", "{{testUserId}}"]
+						}
+					}
+				},
+				{
+					"name": "4. Update User Role",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"role\": \"ADMIN\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/users/{{testUserId}}/role",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "users", "{{testUserId}}", "role"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "📝 Blog Posts",
+			"item": [
+				{
+					"name": "1. Create Post",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('testPostId', response.data.id);",
+									"    pm.environment.set('testPostSlug', response.data.slug);",
+									"    console.log('✅ Post created successfully');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							},
+							{
+								"key": "projectname",
+								"value": "{{projectName}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Test Blog Post\",\n  \"contentBlocks\": [\n    {\n      \"order\": 0,\n      \"title\": \"Introduction\",\n      \"content\": \"This is a test blog post content for API testing.\"\n    }\n  ],\n  \"categoryIds\": [],\n  \"authors\": [\"Test Author\"],\n  \"language\": \"en\",\n  \"isPublished\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/posts",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts"]
+						}
+					}
+				},
+				{
+					"name": "2. Get All Posts",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "projectname",
+								"value": "{{projectName}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/posts",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts"]
+						}
+					}
+				},
+				{
+					"name": "3. Get Post by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "projectname",
+								"value": "{{projectName}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/posts/{{testPostId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts", "{{testPostId}}"]
+						}
+					}
+				},
+				{
+					"name": "4. Get Post by Slug",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "projectname",
+								"value": "{{projectName}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/posts/slug/{{testPostSlug}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts", "slug", "{{testPostSlug}}"]
+						}
+					}
+				},
+				{
+					"name": "5. Update Post",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							},
+							{
+								"key": "projectname",
+								"value": "{{projectName}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Updated Test Blog Post\",\n  \"content\": \"This is updated content.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/posts/{{testPostId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts", "{{testPostId}}"]
+						}
+					}
+				},
+				{
+					"name": "6. Delete Post",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							},
+							{
+								"key": "projectname",
+								"value": "{{projectName}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/posts/{{testPostId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts", "{{testPostId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "📂 Categories",
+			"item": [
+				{
+					"name": "1. Create Category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('testCategoryId', response.data.id);",
+									"    console.log('✅ Category created successfully');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							},
+							{
+								"key": "projectname",
+								"value": "{{projectName}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Test Category\",\n  \"description\": \"Test category description\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/categories",
+							"host": ["{{baseUrl}}"],
+							"path": ["categories"]
+						}
+					}
+				},
+				{
+					"name": "2. Get All Categories",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "projectname",
+								"value": "{{projectName}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories",
+							"host": ["{{baseUrl}}"],
+							"path": ["categories"]
+						}
+					}
+				},
+				{
+					"name": "3. Get Category by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "projectname",
+								"value": "{{projectName}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{testCategoryId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["categories", "{{testCategoryId}}"]
+						}
+					}
+				},
+				{
+					"name": "4. Update Category",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							},
+							{
+								"key": "projectname",
+								"value": "{{projectName}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Test Category\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{testCategoryId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["categories", "{{testCategoryId}}"]
+						}
+					}
+				},
+				{
+					"name": "5. Delete Category",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							},
+							{
+								"key": "projectname",
+								"value": "{{projectName}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{testCategoryId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["categories", "{{testCategoryId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🏗️ Projects",
+			"item": [
+				{
+					"name": "1. Get All Projects",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/projects",
+							"host": ["{{baseUrl}}"],
+							"path": ["projects"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🔗 User Projects",
+			"item": [
+				{
+					"name": "1. Assign User to Project",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": \"{{testUserId}}\",\n  \"projectId\": \"{{projectId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/user-projects/assign",
+							"host": ["{{baseUrl}}"],
+							"path": ["user-projects", "assign"]
+						}
+					}
+				},
+				{
+					"name": "2. Get User Projects",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/user-projects/user/{{testUserId}}/projects",
+							"host": ["{{baseUrl}}"],
+							"path": ["user-projects", "user", "{{testUserId}}", "projects"]
+						}
+					}
+				},
+				{
+					"name": "3. Get All User-Project Relations",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/user-projects",
+							"host": ["{{baseUrl}}"],
+							"path": ["user-projects"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🔒 Cross-Project Security Tests",
+			"item": [
+				{
+					"name": "Setup - Get Project IDs",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    const projects = response.data;",
+									"    ",
+									"    // Find and store project IDs",
+									"    const techBlog = projects.find(p => p.name === 'tech-blog');",
+									"    const ourNews = projects.find(p => p.name === 'our-news');",
+									"    const companyUpdates = projects.find(p => p.name === 'company-updates');",
+									"    ",
+									"    if (techBlog) pm.environment.set('projectId', techBlog.id);",
+									"    if (ourNews) pm.environment.set('secondProjectId', ourNews.id);",
+									"    if (companyUpdates) pm.environment.set('thirdProjectId', companyUpdates.id);",
+									"    ",
+									"    console.log('✅ Project IDs stored for cross-project testing');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/projects",
+							"host": ["{{baseUrl}}"],
+							"path": ["projects"]
+						}
+					}
+				},
+				{
+					"name": "0. Assign Test User to First Project",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    console.log('✅ Test user assigned to first project successfully');",
+									"} else {",
+									"    console.log('❌ Failed to assign test user to first project');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": \"{{testUserId}}\",\n  \"projectId\": \"{{projectId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/user-projects/assign",
+							"host": ["{{baseUrl}}"],
+							"path": ["user-projects", "assign"]
+						}
+					}
+				},
+				{
+					"name": "1. Create Post in Wrong Project (Should Fail)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// This should fail because user is assigned to tech-blog but trying to post to our-news",
+									"pm.test('Should fail with 403 or 404', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([403, 404, 400]);",
+									"});",
+									"",
+									"pm.test('Should contain error message about project access', function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.message).to.include('Project');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{userToken}}"
+							},
+							{
+								"key": "projectname",
+								"value": "{{secondProjectName}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Unauthorized Cross-Project Post\",\n  \"contentBlocks\": [\n    {\n      \"order\": 0,\n      \"title\": \"Introduction\",\n      \"content\": \"This should fail because user is not assigned to this project\"\n    }\n  ],\n  \"categoryIds\": [],\n  \"authors\": [\"Test Author\"],\n  \"language\": \"en\",\n  \"isPublished\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/posts",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts"]
+						}
+					}
+				},
+				{
+					"name": "2. Create Category in Wrong Project (Should Fail)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Should fail with 403 or 404', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([403, 404, 400]);",
+									"});",
+									"",
+									"pm.test('Should contain error message about project access', function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.message).to.include('Project');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{userToken}}"
+							},
+							{
+								"key": "projectname",
+								"value": "{{thirdProjectName}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Unauthorized Category\",\n  \"description\": \"This should fail\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/categories",
+							"host": ["{{baseUrl}}"],
+							"path": ["categories"]
+						}
+					}
+				},
+				{
+					"name": "3. Access Posts from Wrong Project (Should Return Empty)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Should return 200 but empty data', function () {",
+									"    pm.response.to.have.status(200);",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.data).to.be.an('array').that.is.empty;",
+									"});",
+									"",
+									"console.log('✅ Correctly isolated posts by project');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "projectname",
+								"value": "{{secondProjectName}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/posts",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts"]
+						}
+					}
+				},
+				{
+					"name": "4. Access Categories from Wrong Project (Should Return Empty)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Should return 200 but empty data', function () {",
+									"    pm.response.to.have.status(200);",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.data).to.be.an('array').that.is.empty;",
+									"});",
+									"",
+									"console.log('✅ Correctly isolated categories by project');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "projectname",
+								"value": "{{thirdProjectName}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories",
+							"host": ["{{baseUrl}}"],
+							"path": ["categories"]
+						}
+					}
+				},
+				{
+					"name": "5. Try to Update Post from Different Project",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Should fail with 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"",
+									"pm.test('Should contain not found message', function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.message).to.include('not found');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{userToken}}"
+							},
+							{
+								"key": "projectname",
+								"value": "{{secondProjectName}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Trying to update cross-project post\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/posts/{{testPostId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts", "{{testPostId}}"]
+						}
+					}
+				},
+				{
+					"name": "6. Try to Delete Post from Different Project",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Should fail with 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"",
+									"pm.test('Should contain not found message', function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.message).to.include('not found');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{userToken}}"
+							},
+							{
+								"key": "projectname",
+								"value": "{{thirdProjectName}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/posts/{{testPostId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts", "{{testPostId}}"]
+						}
+					}
+				},
+				{
+					"name": "7. Missing Project Header Test",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Should fail with 400 Bad Request', function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test('Should contain project header required message', function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.message).to.include('required');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/posts",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts"]
+						}
+					}
+				},
+				{
+					"name": "8. Invalid Project Name Test",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Should fail with 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"",
+									"pm.test('Should contain project not found message', function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.message).to.include('Project not found');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "projectname",
+								"value": "non-existent-project"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/posts",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts"]
+						}
+					}
+				},
+				{
+					"name": "9. Assign User to Second Project",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    console.log('✅ User assigned to second project successfully');",
+									"} else {",
+									"    console.log('❌ Failed to assign user to second project');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": \"{{testUserId}}\",\n  \"projectId\": \"{{secondProjectId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/user-projects/assign",
+							"host": ["{{baseUrl}}"],
+							"path": ["user-projects", "assign"]
+						}
+					}
+				},
+				{
+					"name": "10. Create Post in Second Project (Should Work Now)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('crossProjectPostId', response.data.id);",
+									"    console.log('✅ Post created in second project successfully');",
+									"} else {",
+									"    console.log('❌ Failed to create post in second project');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{userToken}}"
+							},
+							{
+								"key": "projectname",
+								"value": "{{secondProjectName}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Cross-Project Test Post\",\n  \"contentBlocks\": [\n    {\n      \"order\": 0,\n      \"title\": \"Introduction\",\n      \"content\": \"This post should work now that user is assigned to this project\"\n    }\n  ],\n  \"categoryIds\": [],\n  \"authors\": [\"Test Author\"],\n  \"language\": \"en\",\n  \"isPublished\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/posts",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts"]
+						}
+					}
+				},
+				{
+					"name": "11. Verify Project Isolation - Check First Project",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Should return posts from first project only', function () {",
+									"    pm.response.to.have.status(200);",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.data).to.be.an('array');",
+									"    ",
+									"    // Should not contain the cross-project post",
+									"    const crossProjectPost = response.data.find(post => post.title === 'Cross-Project Test Post');",
+									"    pm.expect(crossProjectPost).to.be.undefined;",
+									"});",
+									"",
+									"console.log('✅ Project isolation verified for first project');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "projectname",
+								"value": "{{projectName}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/posts",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts"]
+						}
+					}
+				},
+				{
+					"name": "12. Verify Project Isolation - Check Second Project",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Should return posts from second project only', function () {",
+									"    pm.response.to.have.status(200);",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.data).to.be.an('array');",
+									"    ",
+									"    // Should contain the cross-project post",
+									"    const crossProjectPost = response.data.find(post => post.title === 'Cross-Project Test Post');",
+									"    pm.expect(crossProjectPost).to.not.be.undefined;",
+									"    ",
+									"    // Should not contain the original test post",
+									"    const originalPost = response.data.find(post => post.title === 'Test Blog Post');",
+									"    pm.expect(originalPost).to.be.undefined;",
+									"});",
+									"",
+									"console.log('✅ Project isolation verified for second project');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "projectname",
+								"value": "{{secondProjectName}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/posts",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🧪 Security Tests",
+			"item": [
+				{
+					"name": "1. Access Protected Route Without Token",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/auth/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "users"]
+						}
+					}
+				},
+				{
+					"name": "2. Access Admin Route as User",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{userToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "users"]
+						}
+					}
+				},
+				{
+					"name": "3. Invalid Token Test",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer invalid_token_here"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "profile"]
+						}
+					}
+				},
+				{
+					"name": "4. Create READ_ONLY User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('readOnlyUserId', response.data.id);",
+									"    console.log('✅ READ_ONLY user created successfully');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"readonly@blog.com\",\n  \"password\": \"readonly123\",\n  \"firstName\": \"ReadOnly\",\n  \"lastName\": \"User\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "5. Set User Role to READ_ONLY",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"role\": \"READ_ONLY\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/users/{{readOnlyUserId}}/role",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "users", "{{readOnlyUserId}}", "role"]
+						}
+					}
+				},
+				{
+					"name": "6. Login READ_ONLY User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('readOnlyToken', response.data.access_token);",
+									"    console.log('✅ READ_ONLY user logged in successfully');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"readonly@blog.com\",\n  \"password\": \"readonly123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "7. Assign READ_ONLY User to Project",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": \"{{readOnlyUserId}}\",\n  \"projectId\": \"{{projectId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/user-projects/assign",
+							"host": ["{{baseUrl}}"],
+							"path": ["user-projects", "assign"]
+						}
+					}
+				},
+				{
+					"name": "8. READ_ONLY User Try Create Post (Should Fail)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Should fail with 403 Forbidden', function () {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"",
+									"pm.test('Should contain insufficient permissions message', function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.message).to.include('Insufficient permissions');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{readOnlyToken}}"
+							},
+							{
+								"key": "projectname",
+								"value": "{{projectName}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"READ_ONLY User Post\",\n  \"contentBlocks\": [\n    {\n      \"order\": 0,\n      \"title\": \"Introduction\",\n      \"content\": \"This should fail\"\n    }\n  ],\n  \"categoryIds\": [],\n  \"authors\": [\"READ_ONLY User\"],\n  \"language\": \"en\",\n  \"isPublished\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/posts",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts"]
+						}
+					}
+				},
+				{
+					"name": "9. READ_ONLY User Try Create Category (Should Fail)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Should fail with 403 Forbidden', function () {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"",
+									"pm.test('Should contain insufficient permissions message', function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.message).to.include('Insufficient permissions');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{readOnlyToken}}"
+							},
+							{
+								"key": "projectname",
+								"value": "{{projectName}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"READ_ONLY Category\",\n  \"description\": \"This should fail\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/categories",
+							"host": ["{{baseUrl}}"],
+							"path": ["categories"]
+						}
+					}
+				},
+				{
+					"name": "10. READ_ONLY User Can Read Posts (Should Work)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Should succeed with 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Should return posts data', function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.data).to.be.an('array');",
+									"});",
+									"",
+									"console.log('✅ READ_ONLY user can read posts');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "projectname",
+								"value": "{{projectName}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/posts",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts"]
+						}
+					}
+				},
+				{
+					"name": "11. READ_ONLY User Try Update Post (Should Fail)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Should fail with 403 Forbidden', function () {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"",
+									"pm.test('Should contain insufficient permissions message', function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.message).to.include('Insufficient permissions');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{readOnlyToken}}"
+							},
+							{
+								"key": "projectname",
+								"value": "{{projectName}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"READ_ONLY trying to update\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/posts/{{testPostId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts", "{{testPostId}}"]
+						}
+					}
+				},
+				{
+					"name": "12. READ_ONLY User Try Delete Post (Should Fail)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Should fail with 403 Forbidden', function () {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"",
+									"pm.test('Should contain insufficient permissions message', function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.message).to.include('Insufficient permissions');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{readOnlyToken}}"
+							},
+							{
+								"key": "projectname",
+								"value": "{{projectName}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/posts/{{testPostId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts", "{{testPostId}}"]
+						}
+					}
+				},
+				{
+					"name": "13. Regular User Try Access Admin Route (Should Fail)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Should fail with 403 Forbidden', function () {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"",
+									"pm.test('Should contain insufficient permissions message', function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.message).to.include('Insufficient permissions');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{userToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/posts/admin/all",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts", "admin", "all"]
+						}
+					}
+				},
+				{
+					"name": "14. SUPER_ADMIN Access Admin Route (Should Work)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Should succeed with 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Should return posts data', function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.data).to.be.an('array');",
+									"});",
+									"",
+									"console.log('✅ SUPER_ADMIN can access admin routes');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							},
+							{
+								"key": "projectname",
+								"value": "{{projectName}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/posts/admin/all",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts", "admin", "all"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000/api/v1"
+		}
+	]
+} 

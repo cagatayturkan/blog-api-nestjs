@@ -9,6 +9,8 @@ import { UserRepository, GoogleUserDto } from './repositories/user.repository';
 import { UserEntity } from './entities/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRole } from './enums/user-role.enum';
+import { TokenBlacklistService } from './services/token-blacklist.service';
+import { MailService } from './services/mail.service';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 
@@ -18,6 +20,8 @@ export class AuthService {
     private readonly userRepository: UserRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly tokenBlacklistService: TokenBlacklistService,
+    private readonly mailService: MailService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<Partial<UserEntity>> {
@@ -29,6 +33,13 @@ export class AuthService {
 
     // Create new user - password hashing is done in UserEntity @BeforeInsert
     const user = await this.userRepository.create(registerDto);
+
+    // Send welcome email (don't block registration if email fails)
+    try {
+      await this.mailService.sendWelcomeEmail(user.email, user.first_name);
+    } catch (error) {
+      console.warn('Failed to send welcome email:', error.message);
+    }
 
     // Don't return the password in the response
     const { password, ...result } = user;
@@ -51,6 +62,9 @@ export class AuthService {
     if (requireEmailVerification && !user.is_email_verified) {
       throw new UnauthorizedException('Email verification required. Please verify your email address before logging in.');
     }
+
+    // Clear user blacklist on successful login (allows login after password change)
+    await this.tokenBlacklistService.clearUserBlacklist(user.id);
 
     // Generate tokens
     const payload = { 
@@ -116,6 +130,9 @@ export class AuthService {
     if (requireEmailVerification && !user.is_email_verified) {
       throw new UnauthorizedException('Email verification required. Please verify your email address before logging in.');
     }
+
+    // Clear user blacklist on successful login (allows login after password change)
+    await this.tokenBlacklistService.clearUserBlacklist(user.id);
 
     // Generate tokens
     const payload = { 
@@ -264,7 +281,7 @@ export class AuthService {
     };
   }
 
-  async logout(logoutDto: LogoutDto): Promise<void> {
+  async logout(logoutDto: LogoutDto, accessToken?: string): Promise<void> {
     const { refresh_token } = logoutDto;
     
     // Find user by refresh token
@@ -273,7 +290,66 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
+    // Add access token to blacklist if provided
+    if (accessToken) {
+      await this.tokenBlacklistService.addToBlacklist(accessToken, user.id, 'logout');
+    }
+
     // Remove refresh token from database  
     await this.userRepository.updateRefreshToken(user.id, null);
+  }
+
+  async logoutFromAllDevices(userId: string, currentToken?: string): Promise<void> {
+    // Find user
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Blacklist all tokens for this user
+    await this.tokenBlacklistService.blacklistAllUserTokens(userId, 'logout_all_devices');
+
+    // Add current token to blacklist if provided
+    if (currentToken) {
+      await this.tokenBlacklistService.addToBlacklist(currentToken, userId, 'logout_all_devices');
+    }
+
+    // Remove refresh token from database
+    await this.userRepository.updateRefreshToken(userId, null);
+  }
+
+  async changePassword(userId: string, oldPassword: string, newPassword: string, currentToken?: string): Promise<void> {
+    // Find user
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Verify old password
+    if (!user.password || !(await user.validatePassword(oldPassword))) {
+      throw new UnauthorizedException('Invalid current password');
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt();
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update password
+    await this.userRepository.update(userId, { password: hashedPassword });
+
+    // Remove refresh token from database (this will invalidate refresh token based sessions)
+    await this.userRepository.updateRefreshToken(userId, null);
+
+    // Add current token to blacklist after a delay to allow response to be sent
+    if (currentToken) {
+      setTimeout(async () => {
+        await this.tokenBlacklistService.addToBlacklist(currentToken, userId, 'password_change');
+      }, 1000); // 1 second delay
+    }
+  }
+
+  async invalidateCurrentSession(userId: string, currentToken: string): Promise<void> {
+    // Add current token to blacklist
+    await this.tokenBlacklistService.addToBlacklist(currentToken, userId, 'password_change');
   }
 } 

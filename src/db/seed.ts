@@ -1,9 +1,12 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from '../app.module'; // Ana app modülümüz
+import { AppModule } from '../app.module';
 import { PostsService } from '../posts/posts.service';
 import { CreatePostDto } from '../posts/dto/create-post.dto';
-import { PostEntity } from '../posts/entities/post.entity'; // Var olanları kontrol için gerekebilir
 import { UserRepository } from '../auth/repositories/user.repository';
+import { ProjectEntity } from '../projects/entities/project.entity';
+import { CategoryEntity } from '../categories/entities/category.entity';
+import { Repository } from 'typeorm';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -21,7 +24,7 @@ interface MockPostAttributes {
 interface MockPost {
   _id: string;
   user_id: string;
-  type: string; // Bu projectIdentifier olacak
+  type: string; // Bu project name olacak
   attributes: MockPostAttributes;
   lang: string;
   createdAt: string;
@@ -32,6 +35,8 @@ async function bootstrap() {
   const appContext = await NestFactory.createApplicationContext(AppModule);
   const postsService = appContext.get(PostsService);
   const userRepository = appContext.get(UserRepository);
+  const projectRepository = appContext.get<Repository<ProjectEntity>>(getRepositoryToken(ProjectEntity));
+  const categoryRepository = appContext.get<Repository<CategoryEntity>>(getRepositoryToken(CategoryEntity));
 
   console.log('Seeding database...');
 
@@ -50,6 +55,25 @@ async function bootstrap() {
     return;
   }
 
+  // Create default projects if they don't exist
+  const defaultProjects = [
+    { name: 'our-news', description: 'Our News Project' },
+    { name: 'tech-blog', description: 'Technology Blog' },
+    { name: 'company-updates', description: 'Company Updates' },
+  ];
+
+  const projectMap = new Map<string, string>(); // name -> id mapping
+
+  for (const projectData of defaultProjects) {
+    let project = await projectRepository.findOneBy({ name: projectData.name });
+    if (!project) {
+      project = projectRepository.create(projectData);
+      await projectRepository.save(project);
+      console.log(`Created project: ${projectData.name}`);
+    }
+    projectMap.set(projectData.name, project.id);
+  }
+
   const mockFilePath = path.join(__dirname, '../../mock.json');
   let mockData: MockPost[];
 
@@ -66,34 +90,61 @@ async function bootstrap() {
   let skippedCount = 0;
 
   for (const mockPost of mockData) {
-    const projectIdentifier = mockPost.type;
+    const projectName = mockPost.type;
+    const projectId = projectMap.get(projectName);
+    
+    if (!projectId) {
+      console.warn(`Project "${projectName}" not found. Skipping post.`);
+      skippedCount++;
+      continue;
+    }
+
     const slug = mockPost.attributes.slug;
 
     try {
-      // Önce bu projectIdentifier ve slug ile bir post var mı diye kontrol et
-      await postsService.findOneBySlugAndProject(projectIdentifier, slug);
+      // Check if post already exists
+      await postsService.findOneBySlugAndProject(projectName, slug);
       skippedCount++;
-      continue; // Varsa atla
+      continue; // Skip if exists
     } catch (error) {
-      // NotFoundException ise post yok demektir, oluşturabiliriz.
-      // Diğer hataları loglayıp devam edebiliriz veya durabiliriz.
       if (error.name !== 'NotFoundException') {
-        console.warn(`Error checking for existing post ${projectIdentifier}/${slug}: ${error.message}. Skipping this one.`);
+        console.warn(`Error checking for existing post ${projectName}/${slug}: ${error.message}. Skipping this one.`);
         skippedCount++;
         continue;
       }
     }
 
+    // Create categories for this project if they don't exist
+    const categoryIds: string[] = [];
+    for (const categoryName of mockPost.attributes['our-news-category'] || []) {
+      let category = await categoryRepository.findOneBy({ 
+        name: categoryName, 
+        project_id: projectId 
+      });
+      
+      if (!category) {
+        category = categoryRepository.create({
+          name: categoryName,
+          project_id: projectId,
+          slug: categoryName.toLowerCase().replace(/\s+/g, '-'),
+        });
+        await categoryRepository.save(category);
+        console.log(`Created category: ${categoryName} for project ${projectName}`);
+      }
+      
+      categoryIds.push(category.id);
+    }
+
     const createPostDto: CreatePostDto = {
-      projectIdentifier: projectIdentifier,
+      projectId: projectId,
       title: mockPost.attributes.title,
-      slug: slug, // mock.json'daki slug'ı kullanalım, servis zaten üretebilir ama tutarlılık için
-      contentBlocks: mockPost.attributes.boxContent.map(cb => ({ // DTO ile uyumlu hale getir
+      slug: slug,
+      contentBlocks: mockPost.attributes.boxContent.map(cb => ({
         order: cb.order,
         title: cb.title,
         content: cb.content,
       })),
-      categories: mockPost.attributes['our-news-category'] || [],
+      categoryIds: categoryIds,
       authors: mockPost.attributes.authors || [],
       seo: mockPost.attributes.seo ? {
         title: mockPost.attributes.seo.metaTitle,
@@ -101,14 +152,14 @@ async function bootstrap() {
       } : undefined,
       featuredImage: mockPost.attributes.img || undefined,
       language: mockPost.lang,
-      // userId: mockPost.user_id, // DTO'da yok, servis default atıyor
+      isPublished: true,
     };
 
     try {
       await postsService.create(createPostDto, adminUserId);
       seededCount++;
     } catch (error) {
-      console.error(`Error seeding post ${createPostDto.projectIdentifier}/${createPostDto.slug}:`, error.message);
+      console.error(`Error seeding post ${projectName}/${createPostDto.slug}:`, error.message);
       skippedCount++;
     }
   }

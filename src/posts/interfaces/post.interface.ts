@@ -9,19 +9,25 @@ export interface SeoData {
   description: string;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  slug?: string;
+}
+
 export interface Post {
-  id: string; // Corresponds to _id
-  userId: string | null; // string | null olarak güncellendi
-  projectIdentifier: string; // Eklendi
-  title: string;
+  id: string;
+  projectId: string; // Changed from projectIdentifier to projectId
   slug: string;
-  contentBlocks: ContentBlock[];
-  categories: string[];
-  authors: string[];
-  seo?: SeoData; // Optional SEO data
-  featuredImage?: string; // Optional featured image URL
+  title: string;
+  contentBlocks: ContentBlock[] | null;
+  categories: Category[] | null;
+  authors: string[] | null;
+  seo: SeoData | null;
+  featuredImage: string | null;
   language: string;
-  isPublished: boolean; // Publication status
+  isPublished: boolean;
+  userId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
