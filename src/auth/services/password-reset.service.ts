@@ -4,6 +4,8 @@ import { Repository, LessThan, MoreThan } from 'typeorm';
 import { PasswordResetEntity } from '../entities/password-reset.entity';
 import { UserRepository } from '../repositories/user.repository';
 import { MailService } from './mail.service';
+import { TokenBlacklistService } from './token-blacklist.service';
+import { BlacklistReason } from '../enums/blacklist-reason.enum';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { v4 as uuidv4 } from 'uuid';
 import * as bcrypt from 'bcrypt';
@@ -15,6 +17,7 @@ export class PasswordResetService {
     private readonly passwordResetRepository: Repository<PasswordResetEntity>,
     private readonly userRepository: UserRepository,
     private readonly mailService: MailService,
+    private readonly tokenBlacklistService: TokenBlacklistService,
   ) {}
 
   async requestPasswordReset(email: string): Promise<{ message: string }> {
@@ -105,6 +108,19 @@ export class PasswordResetService {
 
     // Invalidate all refresh tokens for security
     await this.userRepository.updateRefreshToken(passwordReset.user_id, null);
+
+    // CRITICAL FIX: Blacklist all existing access tokens for this user
+    try {
+      console.log(`🔒 Blacklisting all tokens for user: ${passwordReset.user_id}`);
+      await this.tokenBlacklistService.blacklistAllUserTokens(
+        passwordReset.user_id, 
+        BlacklistReason.PASSWORD_RESET
+      );
+      console.log(`✅ All tokens blacklisted for user: ${passwordReset.user_id}`);
+    } catch (error) {
+      console.error(`❌ Failed to blacklist tokens for user ${passwordReset.user_id}:`, error);
+      // Don't throw error here - password reset should still succeed
+    }
 
     return { message: 'Password has been reset successfully. Please login with your new password.' };
   }

@@ -17,12 +17,18 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { AdminSeeder } from './seeders/admin.seeder';
 import { ScheduleModule } from '@nestjs/schedule';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([UserEntity, TokenBlacklistEntity, PasswordResetEntity]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     ScheduleModule.forRoot(),
+    // Add cache module for token blacklist caching
+    CacheModule.register({
+      ttl: 5 * 60 * 1000, // 5 minutes default TTL
+      max: 1000, // Maximum number of items in cache
+    }),
     // Specific rate limiting for auth module (stricter than global)
     ThrottlerModule.forRoot([{
       ttl: 60, // 60 seconds

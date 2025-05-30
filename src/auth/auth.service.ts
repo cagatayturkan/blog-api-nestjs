@@ -11,6 +11,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRole } from './enums/user-role.enum';
 import { TokenBlacklistService } from './services/token-blacklist.service';
 import { MailService } from './services/mail.service';
+import { BlacklistReason } from './enums/blacklist-reason.enum';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 
@@ -62,9 +63,6 @@ export class AuthService {
     if (requireEmailVerification && !user.is_email_verified) {
       throw new UnauthorizedException('Email verification required. Please verify your email address before logging in.');
     }
-
-    // Clear user blacklist on successful login (allows login after password change)
-    await this.tokenBlacklistService.clearUserBlacklist(user.id);
 
     // Generate tokens
     const payload = { 
@@ -130,9 +128,6 @@ export class AuthService {
     if (requireEmailVerification && !user.is_email_verified) {
       throw new UnauthorizedException('Email verification required. Please verify your email address before logging in.');
     }
-
-    // Clear user blacklist on successful login (allows login after password change)
-    await this.tokenBlacklistService.clearUserBlacklist(user.id);
 
     // Generate tokens
     const payload = { 
@@ -292,7 +287,7 @@ export class AuthService {
 
     // Add access token to blacklist if provided
     if (accessToken) {
-      await this.tokenBlacklistService.addToBlacklist(accessToken, user.id, 'logout');
+      await this.tokenBlacklistService.addToBlacklist(accessToken, user.id, BlacklistReason.LOGOUT);
     }
 
     // Remove refresh token from database  
@@ -307,11 +302,11 @@ export class AuthService {
     }
 
     // Blacklist all tokens for this user
-    await this.tokenBlacklistService.blacklistAllUserTokens(userId, 'logout_all_devices');
+    await this.tokenBlacklistService.blacklistAllUserTokens(userId, BlacklistReason.LOGOUT_ALL_DEVICES);
 
     // Add current token to blacklist if provided
     if (currentToken) {
-      await this.tokenBlacklistService.addToBlacklist(currentToken, userId, 'logout_all_devices');
+      await this.tokenBlacklistService.addToBlacklist(currentToken, userId, BlacklistReason.LOGOUT_ALL_DEVICES);
     }
 
     // Remove refresh token from database
@@ -340,16 +335,13 @@ export class AuthService {
     // Remove refresh token from database (this will invalidate refresh token based sessions)
     await this.userRepository.updateRefreshToken(userId, null);
 
-    // Add current token to blacklist after a delay to allow response to be sent
-    if (currentToken) {
-      setTimeout(async () => {
-        await this.tokenBlacklistService.addToBlacklist(currentToken, userId, 'password_change');
-      }, 1000); // 1 second delay
-    }
+    // Blacklist all existing access tokens for this user
+    // Pass the currentToken to exclude it from immediate blacklisting if it's the one being used for this very request
+    await this.tokenBlacklistService.blacklistAllUserTokens(userId, BlacklistReason.PASSWORD_CHANGE, currentToken);
   }
 
   async invalidateCurrentSession(userId: string, currentToken: string): Promise<void> {
     // Add current token to blacklist
-    await this.tokenBlacklistService.addToBlacklist(currentToken, userId, 'password_change');
+    await this.tokenBlacklistService.addToBlacklist(currentToken, userId, BlacklistReason.PASSWORD_CHANGE);
   }
 } 
