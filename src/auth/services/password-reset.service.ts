@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, MoreThan } from 'typeorm';
 import { PasswordResetEntity } from '../entities/password-reset.entity';
@@ -25,7 +29,9 @@ export class PasswordResetService {
     const user = await this.userRepository.findByEmail(email);
     if (!user) {
       // Don't reveal if email exists or not for security
-      return { message: 'If the email exists, a password reset link has been sent.' };
+      return {
+        message: 'If the email exists, a password reset link has been sent.',
+      };
     }
 
     // Check if there's already a recent reset request (within last 5 minutes)
@@ -38,7 +44,10 @@ export class PasswordResetService {
     });
 
     if (recentReset) {
-      return { message: 'A password reset email was recently sent. Please check your email or wait a few minutes before requesting again.' };
+      return {
+        message:
+          'A password reset email was recently sent. Please check your email or wait a few minutes before requesting again.',
+      };
     }
 
     // Generate secure reset token
@@ -48,7 +57,7 @@ export class PasswordResetService {
     // Invalidate any existing unused tokens for this user
     await this.passwordResetRepository.update(
       { user_id: user.id, is_used: false },
-      { is_used: true }
+      { is_used: true },
     );
 
     // Create new reset token
@@ -66,18 +75,25 @@ export class PasswordResetService {
       await this.mailService.sendPasswordResetEmail(
         user.email,
         resetToken,
-        user.first_name
+        user.first_name,
       );
     } catch (error) {
       // If email fails, remove the reset token
       await this.passwordResetRepository.delete(passwordReset.id);
-      throw new BadRequestException('Failed to send password reset email. Please try again later.');
+      throw new BadRequestException(
+        'Failed to send password reset email. Please try again later.',
+      );
     }
 
-    return { message: 'If the email exists, a password reset link has been sent.' };
+    return {
+      message: 'If the email exists, a password reset link has been sent.',
+    };
   }
 
-  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+  async resetPassword(
+    token: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
     // Find valid reset token
     const passwordReset = await this.passwordResetRepository.findOne({
       where: {
@@ -111,21 +127,27 @@ export class PasswordResetService {
 
     // CRITICAL FIX: Blacklist all existing access tokens for this user
     try {
-      console.log(`🔒 Blacklisting all tokens for user: ${passwordReset.user_id}`);
       await this.tokenBlacklistService.blacklistAllUserTokens(
-        passwordReset.user_id, 
-        BlacklistReason.PASSWORD_RESET
+        passwordReset.user_id,
+        BlacklistReason.PASSWORD_RESET,
       );
-      console.log(`✅ All tokens blacklisted for user: ${passwordReset.user_id}`);
     } catch (error) {
-      console.error(`❌ Failed to blacklist tokens for user ${passwordReset.user_id}:`, error);
+      console.error(
+        `❌ Failed to blacklist tokens for user ${passwordReset.user_id}:`,
+        error,
+      );
       // Don't throw error here - password reset should still succeed
     }
 
-    return { message: 'Password has been reset successfully. Please login with your new password.' };
+    return {
+      message:
+        'Password has been reset successfully. Please login with your new password.',
+    };
   }
 
-  async validateResetToken(token: string): Promise<{ valid: boolean; email?: string }> {
+  async validateResetToken(
+    token: string,
+  ): Promise<{ valid: boolean; email?: string }> {
     const passwordReset = await this.passwordResetRepository.findOne({
       where: {
         token,
@@ -147,7 +169,13 @@ export class PasswordResetService {
 
   private generateResetToken(): string {
     // Generate a secure random token
-    return uuidv4() + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 9);
+    return (
+      uuidv4() +
+      '-' +
+      Date.now().toString(36) +
+      '-' +
+      Math.random().toString(36).substr(2, 9)
+    );
   }
 
   // Clean up expired reset tokens (runs daily at 3 AM)
@@ -157,8 +185,6 @@ export class PasswordResetService {
     const result = await this.passwordResetRepository.delete({
       expires_at: LessThan(now),
     });
-
-    console.log(`Cleaned up ${result.affected} expired password reset tokens`);
   }
 
   // Clean up old used tokens (runs weekly)
@@ -169,7 +195,5 @@ export class PasswordResetService {
       is_used: true,
       created_at: LessThan(oneWeekAgo),
     });
-
-    console.log(`Cleaned up ${result.affected} old used password reset tokens`);
   }
-} 
+}

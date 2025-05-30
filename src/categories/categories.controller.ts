@@ -87,9 +87,6 @@ export class CategoriesController {
     @Body() body: { name: string; slug?: string; description?: string },
     @Req() req: RequestWithUserAndProject
   ) {
-    console.log('Project from middleware:', req.project);
-    console.log('Request body:', body);
-    
     // Create internal DTO with project ID from middleware
     const createCategoryWithProject: CreateCategoryWithProjectDto = {
       name: body.name,
@@ -97,8 +94,6 @@ export class CategoriesController {
       description: body.description,
       projectId: req.project!.id,
     };
-    
-    console.log('Final DTO:', createCategoryWithProject);
     
     return this.categoriesService.create(createCategoryWithProject, req.user.id);
   }

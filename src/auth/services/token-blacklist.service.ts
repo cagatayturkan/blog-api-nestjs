@@ -73,13 +73,10 @@ export class TokenBlacklistService {
   }
 
   async blacklistAllUserTokens(userId: string, reason: BlacklistReason = BlacklistReason.SECURITY, excludeToken?: string): Promise<void> {
-    console.log(`🚫 Starting blacklistAllUserTokens for user: ${userId}, reason: ${reason}`);
     
     try {
       // Test repository connection
-      console.log(`🔍 Testing repository connection...`);
       const testCount = await this.tokenBlacklistRepository.count();
-      console.log(`📊 Current blacklist count: ${testCount}`);
 
       // Add excluded token to temporary whitelist if provided
       if (excludeToken) {
@@ -93,7 +90,6 @@ export class TokenBlacklistService {
       const userTokenKey = `USER_ALL_TOKENS_${userId}`;
       
       // First, remove any existing USER_ALL_TOKENS entry for this user
-      console.log(`🗑️ Removing existing USER_ALL_TOKENS entry for user: ${userId}`);
       await this.tokenBlacklistRepository.delete({
         token: userTokenKey,
       });
@@ -109,17 +105,13 @@ export class TokenBlacklistService {
         created_at: now, // Ensure created_at uses app server time
       });
 
-      console.log(`💾 Saving blacklist entry (app time for created_at):`, blacklistEntry);
       const savedEntry = await this.tokenBlacklistRepository.save(blacklistEntry);
-      console.log(`✅ Saved to database:`, savedEntry);
 
       // Verify save
       const verifyCount = await this.tokenBlacklistRepository.count();
-      console.log(`📊 New blacklist count: ${verifyCount}`);
 
       // Cache the user blacklist status
       await this.cacheManager.set(`user_blacklist:${userId}`, true, this.CACHE_TTL);
-      console.log(`✅ User tokens blacklisted successfully for user: ${userId}`);
     } catch (error) {
       console.error(`❌ Error blacklisting tokens for user ${userId}:`, error);
       throw error;
@@ -128,11 +120,9 @@ export class TokenBlacklistService {
 
   // Modified to accept tokenIat (issued at timestamp)
   async isUserTokensBlacklisted(userId: string, currentToken?: string, tokenIat?: number): Promise<boolean> {
-    console.log(`🔍 isUserTokensBlacklisted V2 called for user: ${userId}, tokenIat: ${tokenIat}`);
 
     // Check if current token is in temporary whitelist
     if (currentToken && this.temporaryWhitelist.has(currentToken)) {
-      console.log(`⚪ Token in temporary whitelist, allowing access`);
       return false;
     }
 
@@ -141,20 +131,17 @@ export class TokenBlacklistService {
     const cachedGenericResult = await this.cacheManager.get<boolean>(genericUserBlacklistCacheKey);
 
     if (cachedGenericResult === false) { // Explicitly check for false
-      console.log(`💾 Cache hit for GENERIC user blacklist (${genericUserBlacklistCacheKey}): false. User not generally blacklisted.`);
       return false; // If generic says not blacklisted, then definitely not.
     }
     
     // If cachedGenericResult is true or undefined, we need to check the database rule, especially if tokenIat is present.
 
     const userAllTokensKey = `USER_ALL_TOKENS_${userId}`;
-    console.log(`[V2] Checking database for: ${userAllTokensKey}`);
     const blacklistRule = await this.tokenBlacklistRepository.findOne({
       where: { token: userAllTokensKey },
     });
 
     if (!blacklistRule) {
-      console.log(`[V2] 🚫 No USER_ALL_TOKENS rule found for user ${userId}. User tokens are not blacklisted.`);
       // Cache this result with the generic key
       await this.cacheManager.set(genericUserBlacklistCacheKey, false, this.CACHE_TTL);
       // Also clear any potentially misleading IAT-specific cache entry
@@ -171,14 +158,12 @@ export class TokenBlacklistService {
     // Now, perform the IAT check against the rule from the database.
     // If tokenIat is not provided, or if the token was issued *before* or *at the same time* the rule was created,
     // then all tokens for this user (including the current one, if applicable) are considered blacklisted.
-    if (tokenIat === undefined || (blacklistRule.created_at && tokenIat <= Math.floor(blacklistRule.created_at.getTime() / 1000))) {
-      console.log(`[V2] 🎯 USER_ALL_TOKENS rule found (created at ${blacklistRule.created_at}). Token (issued at ${tokenIat}) IS considered blacklisted by this rule.`);
+    if (tokenIat === undefined || (blacklistRule.created_at && tokenIat <= Math.floor(blacklistRule.created_at.getTime() / 1000))) {  
       // We don't need to cache the IAT-specific result here as the generic 'true' + DB check is now the flow.
       return true;
     }
 
     // If the token was issued *after* the blacklist rule was created, it's a new token and should be allowed.
-    console.log(`[V2] 🎯 USER_ALL_TOKENS rule found (created at ${blacklistRule.created_at}), but token (issued at ${tokenIat}) is newer. Token is NOT blacklisted by this rule.`);
     // We don't need to cache an IAT-specific 'false' here; the generic 'true' + DB check handles this.
     return false;
   }
@@ -191,7 +176,6 @@ export class TokenBlacklistService {
       expires_at: LessThan(now),
     });
 
-    console.log(`Cleaned up ${result.affected} expired blacklisted tokens`);
     
     // Note: Cache entries will expire naturally based on TTL
   }
@@ -219,7 +203,6 @@ export class TokenBlacklistService {
 
   // New method: Clear only USER_ALL_TOKENS blacklist for successful login
   async clearUserAllTokensBlacklist(userId: string): Promise<void> {
-    console.log(`🧹 Clearing USER_ALL_TOKENS blacklist for user: ${userId}`);
     
     const userTokenKey = `USER_ALL_TOKENS_${userId}`;
     
@@ -228,10 +211,8 @@ export class TokenBlacklistService {
       token: userTokenKey,
     });
     
-    console.log(`✅ Removed ${result.affected} USER_ALL_TOKENS entries for user: ${userId}`);
     
     // Clear user blacklist cache
     await this.cacheManager.del(`user_blacklist:${userId}`);
-    console.log(`🗑️ Cleared cache for user: ${userId}`);
   }
 } 

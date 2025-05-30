@@ -3,7 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PostsModule } from './posts/posts.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PostEntity } from './posts/entities/post.entity';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -20,9 +20,12 @@ import { CategoriesModule } from './categories/categories.module';
 import { ProjectFilterMiddleware } from './common/middleware/project-filter.middleware';
 import { PostsController } from './posts/posts.controller';
 import { CategoriesController } from './categories/categories.controller';
+import { SentryModule } from '@sentry/nestjs/setup';
+import { SentryErrorFilter } from './common/filters/sentry-error.filter';
 
 @Module({
   imports: [
+    SentryModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -61,6 +64,10 @@ import { CategoriesController } from './categories/categories.controller';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: SentryErrorFilter,
     },
     ProjectFilterMiddleware,
   ],
