@@ -25,9 +25,13 @@ import { CacheModule } from '@nestjs/cache-manager';
     PassportModule.register({ defaultStrategy: 'jwt' }),
     ScheduleModule.forRoot(),
     // Add cache module for token blacklist caching
-    CacheModule.register({
-      ttl: 5 * 60 * 1000, // 5 minutes default TTL
-      max: 1000, // Maximum number of items in cache
+    CacheModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        ttl: configService.get<number>('CACHE_TTL', 20 * 60 * 1000), // 20 minutes default TTL
+        max: configService.get<number>('CACHE_MAX_ITEMS', 1000), // Maximum number of items in cache
+      }),
     }),
     // Specific rate limiting for auth module (stricter than global)
     ThrottlerModule.forRoot([{

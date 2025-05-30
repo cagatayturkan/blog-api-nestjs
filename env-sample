@@ -23,6 +23,10 @@ JWT_EXPIRES_IN=15m
 JWT_REFRESH_SECRET=your_jwt_refresh_secret_key_here
 JWT_REFRESH_EXPIRES_IN=7d
 
+# Cache Configuration
+CACHE_TTL=1200000
+CACHE_MAX_ITEMS=1000
+
 # Email Verification Configuration
 REQUIRE_EMAIL_VERIFICATION=false
 
@@ -37,3 +41,11 @@ ADMIN_EMAIL=admin@blog.com
 ADMIN_PASSWORD=your_secure_admin_password
 ADMIN_FIRST_NAME=Super
 ADMIN_LAST_NAME=Admin
+
+# SendGrid Email Configuration
+SENDGRID_API_KEY=your_sendgrid_api_key
+SENDGRID_FROM_EMAIL=your_email@example.com
+SENDGRID_FROM_NAME=your_name
+
+# Sentry Configuration
+SENTRY_DSN=your_sentry_dsn
