@@ -25,17 +25,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // Extract the token from the request
     const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
     
-    console.log(`🔐 JWT Strategy validate called for user: ${payload.sub}, iat: ${payload.iat}`);
-    console.log(`🎫 Token: ${token?.substring(0, 50)}...`);
     
     if (!token) {
       throw new UnauthorizedException('Token not found');
     }
 
     // Check if token is blacklisted
-    console.log(`🔍 Checking if token is blacklisted...`);
     const isBlacklisted = await this.tokenBlacklistService.isTokenBlacklisted(token);
-    console.log(`🚫 Token blacklisted: ${isBlacklisted}`);
     if (isBlacklisted) {
       throw new UnauthorizedException('Token has been revoked');
     }
@@ -47,14 +43,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     // Check if all user tokens are blacklisted (e.g., after password change)
-    console.log(`🔍 Checking if user tokens are blacklisted (checking with iat: ${payload.iat})...`);
     const areUserTokensBlacklisted = await this.tokenBlacklistService.isUserTokensBlacklisted(user.id, token, payload.iat);
-    console.log(`🚫 User tokens blacklisted: ${areUserTokensBlacklisted}`);
     if (areUserTokensBlacklisted) {
       throw new UnauthorizedException('All user sessions have been invalidated');
     }
-    
-    console.log(`✅ JWT validation successful for user: ${user.id}`);
     
     // The value returned here will be available as 'req.user'
     return { 
