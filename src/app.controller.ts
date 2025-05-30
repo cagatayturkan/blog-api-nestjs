@@ -25,6 +25,7 @@ export class AppController {
   @ApiOperation({ summary: 'Test Sentry error capturing' })
   @ApiResponse({ status: 500, description: 'Throws an error for Sentry testing' })
   getError(): void {
-    throw new Error("My first Sentry error!");
+    const timestamp = new Date().toISOString();
+    throw new Error(`🚀 TURKIYE BLOG API TEST MESAJI - SENTRY CALISIYOR 2025! 🎯 [${timestamp}]`);
   }
 }

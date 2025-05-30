@@ -21,7 +21,7 @@ import { ProjectFilterMiddleware } from './common/middleware/project-filter.midd
 import { PostsController } from './posts/posts.controller';
 import { CategoriesController } from './categories/categories.controller';
 import { SentryModule } from '@sentry/nestjs/setup';
-import { SentryErrorFilter } from './common/filters/sentry-error.filter';
+import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 
 @Module({
   imports: [
@@ -67,7 +67,7 @@ import { SentryErrorFilter } from './common/filters/sentry-error.filter';
     },
     {
       provide: APP_FILTER,
-      useClass: SentryErrorFilter,
+      useClass: SentryGlobalFilter,
     },
     ProjectFilterMiddleware,
   ],

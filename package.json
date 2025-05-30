@@ -10,15 +10,18 @@
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
+    "start:dev:env": "NODE_ENV=development node -r dotenv/config dist/main.js dotenv_config_path=.env",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
+    "start:prod": "NODE_ENV=production node dist/main",
+    "start:prod:env": "node -r dotenv/config dist/main dotenv_config_path=.env",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org lanistar-ni --project node-nestjs ./dist && sentry-cli sourcemaps upload --org lanistar-ni --project node-nestjs ./dist"
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org lanistar-ni --project node-nestjs ./dist && sentry-cli sourcemaps upload --org lanistar-ni --project node-nestjs ./dist",
+    "sentry:release": "sentry-cli releases new $npm_package_version && sentry-cli releases set-commits $npm_package_version --auto && sentry-cli releases finalize $npm_package_version"
   },
   "dependencies": {
     "@nestjs/cache-manager": "^3.0.1",
