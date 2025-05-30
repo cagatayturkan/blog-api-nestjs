@@ -77,7 +77,7 @@ export class PostsController {
   }
 
   @Get() // GET /posts
-  @ApiOperation({ summary: 'Get all posts' })
+  @ApiOperation({ summary: 'Get all posts (public endpoint)' })
   @ApiHeader({
     name: 'projectname',
     description: 'Project name to get posts from',
@@ -92,12 +92,9 @@ export class PostsController {
   @ApiQuery({ name: 'author', description: 'Author filter', required: false })
   @ApiQuery({ name: 'searchTerm', description: 'Search in title', required: false })
   @ApiResponse({ status: 200, description: 'Posts retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
-  @ApiBearerAuth('JWT-auth')
-  @UseGuards(JwtAuthGuard) // Requires authentication
+  // Public endpoint - all users can read published posts
   async findAll(
-    @Req() req: RequestWithUserAndProject,
+    @Req() req: RequestWithProject,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe)
     page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe)
@@ -116,12 +113,6 @@ export class PostsController {
       sortField = sort.startsWith('-') ? sort.substring(1) : sort;
     }
     
-    // Check if user has access to this project
-    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(req.user.id, req.project!.id);
-    if (!hasAccess) {
-      throw new ForbiddenException(`You don't have access to project "${req.project!.name}"`);
-    }
-    
     // Use project name from middleware
     return this.postsService.findAll(
       page,
@@ -133,7 +124,7 @@ export class PostsController {
       category,
       author,
       searchTerm,
-      true, // Only show published posts for authenticated users
+      true, // Only show published posts for public access
     );
   }
 

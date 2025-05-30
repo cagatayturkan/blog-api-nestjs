@@ -284,4 +284,18 @@ export class CategoriesService {
 
     return categories.map(category => this.mapEntityToInterface(category));
   }
+
+  // Public method for getting categories by project ID (public endpoint)
+  async findAllByProjectPublic(projectId: string): Promise<Category[]> {
+    const categories = await this.categoryRepository.find({
+      where: { 
+        project: { id: projectId },
+        is_active: true // Only show active categories for public access
+      },
+      relations: ['project'],
+      order: { name: 'ASC' },
+    });
+
+    return categories.map(category => this.mapEntityToInterface(category));
+  }
 } 

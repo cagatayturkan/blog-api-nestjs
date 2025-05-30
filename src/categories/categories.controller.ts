@@ -99,7 +99,7 @@ export class CategoriesController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all categories' })
+  @ApiOperation({ summary: 'Get all categories (public endpoint)' })
   @ApiHeader({
     name: 'projectname',
     description: 'Project name to get categories from',
@@ -107,20 +107,11 @@ export class CategoriesController {
     example: 'tech-blog'
   })
   @ApiResponse({ status: 200, description: 'Categories retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
-  @ApiBearerAuth('JWT-auth')
-  @UseGuards(JwtAuthGuard) // Requires authentication
+  // Public endpoint - all users can see categories
   async findAllByProject(
-    @Req() req: RequestWithUserAndProject,
+    @Req() req: RequestWithProject,
   ) {
-    // Check if user has access to this project
-    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(req.user.id, req.project!.id);
-    if (!hasAccess) {
-      throw new ForbiddenException(`You don't have access to project "${req.project!.name}"`);
-    }
-    
-    return this.categoriesService.findAllByProject(req.project!.id, req.user.id);
+    return this.categoriesService.findAllByProjectPublic(req.project!.id);
   }
 
   @Get(':id')

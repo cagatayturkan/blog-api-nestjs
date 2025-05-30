@@ -26,8 +26,12 @@ export class UserProjectsController {
   constructor(private readonly userProjectsService: UserProjectsService) {}
 
   @Post('assign')
-  @ApiOperation({ summary: 'Assign user to project (Super Admin only)' })
+  @ApiOperation({ 
+    summary: 'Assign user to project (Super Admin only)',
+    description: 'Assign a user to a project using either ID or human-readable identifiers (email/project name)'
+  })
   @ApiResponse({ status: 201, description: 'User assigned to project successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - invalid input or conflicting identifiers' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Super Admin access required' })
   @ApiResponse({ status: 404, description: 'User or project not found' })
@@ -35,10 +39,7 @@ export class UserProjectsController {
   @Roles(UserRole.SUPER_ADMIN) // Only SUPER_ADMIN can assign users to projects
   @HttpCode(HttpStatus.CREATED)
   async assignUserToProject(@Body() assignDto: AssignUserToProjectDto) {
-    return this.userProjectsService.assignUserToProject(
-      assignDto.userId,
-      assignDto.projectId,
-    );
+    return this.userProjectsService.assignUserToProject(assignDto);
   }
 
   @Delete('unassign/:userId/:projectId')
