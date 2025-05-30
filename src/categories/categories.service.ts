@@ -21,7 +21,7 @@ export class CategoriesService {
     private userProjectsService: UserProjectsService,
   ) {}
 
-  // Entity'den Interface'e dönüşüm
+  // Convert Entity to Interface
   private mapEntityToInterface(entity: CategoryEntity): Category {
     return {
       id: entity.id,
@@ -35,7 +35,7 @@ export class CategoriesService {
     };
   }
 
-  // Slug oluşturma
+  // Generate slug
   private generateSlug(name: string): string {
     return name
       .toLowerCase()
@@ -46,7 +46,7 @@ export class CategoriesService {
       .replace(/-+$/, '');
   }
 
-  // Unique slug oluşturma (project içinde benzersiz olması için)
+  // Generate unique slug (unique within project)
   private async generateUniqueSlug(name: string, projectId: string, excludeId?: string): Promise<string> {
     let baseSlug = this.generateSlug(name);
     let slug = baseSlug;
@@ -76,7 +76,7 @@ export class CategoriesService {
   }
 
   async create(createCategoryDto: CreateCategoryWithProjectDto, userId: string): Promise<Category> {
-    // Verify project exists
+    // Check if project exists
     const project = await this.projectRepository.findOne({
       where: { id: createCategoryDto.projectId }
     });
@@ -84,13 +84,13 @@ export class CategoriesService {
       throw new NotFoundException(`Project with ID "${createCategoryDto.projectId}" not found`);
     }
 
-    // Check if user has access to this project
+    // Check if user has access to project
     const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, createCategoryDto.projectId);
     if (!hasAccess) {
       throw new ForbiddenException(`You don't have access to project "${project.name}"`);
     }
 
-    // Check if category name already exists in this project
+    // Check if category name already exists in project
     const existingCategory = await this.categoryRepository.findOne({
       where: {
         name: createCategoryDto.name,
@@ -102,7 +102,7 @@ export class CategoriesService {
       throw new ConflictException(`Category "${createCategoryDto.name}" already exists in this project`);
     }
 
-    // Generate unique slug if not provided
+    // Generate unique slug if not provided (if not provided, generate unique slug)
     const slug = createCategoryDto.slug || 
       await this.generateUniqueSlug(createCategoryDto.name, createCategoryDto.projectId);
 
@@ -116,7 +116,7 @@ export class CategoriesService {
 
     const savedCategory = await this.categoryRepository.save(category);
 
-    // Load with relations for response
+    // Load with relations for response (load with relations for response)
     const categoryWithProject = await this.categoryRepository.findOne({
       where: { id: savedCategory.id },
       relations: ['project'],
@@ -130,7 +130,7 @@ export class CategoriesService {
   }
 
   async findAllByProject(projectId: string, userId: string): Promise<Category[]> {
-    // Check if user has access to this project
+    // Check if user has access to project
     const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, projectId);
     if (!hasAccess) {
       throw new ForbiddenException(`You don't have access to this project`);
@@ -155,7 +155,7 @@ export class CategoriesService {
       throw new NotFoundException(`Category with ID "${id}" not found`);
     }
 
-    // Check if user has access to this project
+    // Check if user has access to project
     const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, category.project.id);
     if (!hasAccess) {
       throw new ForbiddenException(`You don't have access to this project`);
@@ -174,13 +174,13 @@ export class CategoriesService {
       throw new NotFoundException(`Category with ID "${id}" not found`);
     }
 
-    // Check if user has access to this project
+    // Check if user has access to project
     const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, category.project.id);
     if (!hasAccess) {
       throw new ForbiddenException(`You don't have access to this project`);
     }
 
-    // If changing project, check access to new project (SUPER_ADMIN only)
+    // If changing project, check access to new project (only SUPER_ADMIN can move categories between projects)
     if (updateCategoryDto.projectId && updateCategoryDto.projectId !== category.project.id) {
       if (userRole !== 'SUPER_ADMIN') {
         throw new ForbiddenException('Only SUPER_ADMIN can move categories between projects');
@@ -195,7 +195,7 @@ export class CategoriesService {
       category.project = newProject;
     }
 
-    // Check for name conflicts in the target project
+    // Check for name conflicts in the target project (check for name conflicts in the target project)
     if (updateCategoryDto.name && updateCategoryDto.name !== category.name) {
       const targetProjectId = updateCategoryDto.projectId || category.project.id;
       const existingCategory = await this.categoryRepository.findOne({

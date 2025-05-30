@@ -14,15 +14,10 @@ import { ProjectEntity } from '../../projects/entities/project.entity';
 import { CategoryEntity } from '../../categories/entities/category.entity';
 import { UserEntity } from '../../auth/entities/user.entity';
 
-// Interface'leri doğrudan entity içinde kullanmak yerine,
-// entity alanlarını DTO'lar ve servislerdeki interface'lerle uyumlu hale getireceğiz.
-// type ContentBlockType = { order: number; title?: string; content: string };
-// type SeoDataType = { title: string; description: string };
-
-@Entity('posts') // Veritabanındaki tablo adını 'posts' olarak belirtir
+@Entity('posts') // Specifies the table name as 'posts' in the database
 @Index(['project_id', 'slug'], { unique: true }) // project_id and slug combination must be unique
 export class PostEntity {
-  @PrimaryGeneratedColumn('uuid') // Otomatik artan birincil anahtar (UUID formatında)
+  @PrimaryGeneratedColumn('uuid') // Auto-incrementing primary key (UUID format)
   id: string;
 
   // Many posts belong to one project
@@ -39,10 +34,14 @@ export class PostEntity {
   @Column({ type: 'text', nullable: false })
   title: string;
 
-  // mock.json'daki attributes.boxContent için JSONB tipi kullanacağız
-  // JSONB, PostgreSQL'de JSON verilerini verimli bir şekilde saklamak ve sorgulamak için kullanılır
+  // We will use JSONB type for attributes.boxContent in mock.json
+  // JSONB is used to efficiently store and query JSON data in PostgreSQL
   @Column({ type: 'jsonb', nullable: true }) // Array of ContentBlockType
-  content_blocks: Array<{ order: number; title?: string; content: string }> | null; // Tipini burada belirtiyoruz
+  content_blocks: Array<{
+    order: number;
+    title?: string;
+    content: string;
+  }> | null; // Tipini burada belirtiyoruz
 
   // Many-to-Many relationship with categories
   @ManyToMany(() => CategoryEntity)
@@ -56,7 +55,7 @@ export class PostEntity {
   @Column({ type: 'text', array: true, nullable: true }) // PostgreSQL'de string dizisi
   authors: string[] | null;
 
-  // mock.json'daki attributes.seo için JSONB tipi
+  // We will use JSONB type for attributes.seo in mock.json
   @Column({ type: 'jsonb', nullable: true }) // SeoDataType
   seo_data: { title: string; description: string } | null; // Tipini burada belirtiyoruz
 
@@ -77,9 +76,9 @@ export class PostEntity {
   @Column({ type: 'uuid', nullable: true })
   user_id: string | null;
 
-  @CreateDateColumn() // Kayıt oluşturulduğunda otomatik olarak tarih ekler
+  @CreateDateColumn() // Automatically adds date when record is created
   created_at: Date;
 
-  @UpdateDateColumn() // Kayıt güncellendiğinde otomatik olarak tarih günceller
+  @UpdateDateColumn() // Automatically updates date when record is updated
   updated_at: Date;
-} 
+}
