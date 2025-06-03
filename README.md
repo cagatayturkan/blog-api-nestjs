@@ -5,7 +5,6 @@ Modern, güvenli ve ölçeklenebilir Blog REST API. NestJS, TypeORM ve PostgreSQ
 ## ✨ Özellikler
 
 ### 🔐 Gelişmiş JWT Session Management
-- **Token Blacklist Sistemi** - Logout edilen token'ların geçersiz kılınması
 - **Multi-Device Logout** - Tüm cihazlardan çıkış yapabilme
 - **Güvenli Şifre Değişikliği** - Session invalidation ile
 - **Refresh Token Rotation** - Güvenlik için token yenileme
@@ -131,7 +130,6 @@ Detaylı test rehberi:
 - `POST /api/v1/auth/login` - Kullanıcı girişi
 - `POST /api/v1/auth/refresh` - Token yenileme
 - `POST /api/v1/auth/logout` - Çıkış (tek cihaz)
-- `POST /api/v1/auth/logout-all-devices` - Tüm cihazlardan çıkış
 - `POST /api/v1/auth/change-password` - Şifre değişikliği (authenticated)
 - `POST /api/v1/auth/reset-password` - Şifre sıfırlama (public)
 - `GET /api/v1/auth/profile` - Profil bilgileri
@@ -203,7 +201,6 @@ src/
 ├── categories/          # Categories modülü
 ├── projects/            # Projects modülü
 ├── user-projects/       # User-project relations
-├── token-blacklist/     # Token blacklist sistemi
 └── common/              # Ortak utilities
 ```
 

@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "blog-api-collection",
 		"name": "Blog REST API - Complete Test Suite",
-		"description": "Comprehensive test collection for Blog REST API with JWT Session Management",
+		"description": "Comprehensive test collection for Blog REST API with Session-based JWT Authentication. Uses cache-based sessions with automatic TTL refresh on each request. No refresh tokens needed - sessions are managed automatically.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -49,7 +49,7 @@
 					}
 				},
 				{
-					"name": "2. Admin Login",
+					"name": "2. Admin Login (Session-based)",
 					"event": [
 						{
 							"listen": "test",
@@ -58,9 +58,9 @@
 									"if (pm.response.code === 200) {",
 									"    const response = pm.response.json();",
 									"    pm.environment.set('adminToken', response.data.access_token);",
-									"    pm.environment.set('adminRefreshToken', response.data.refresh_token);",
 									"    pm.environment.set('adminUserId', response.data.user.id);",
-									"    console.log('✅ Admin logged in successfully');",
+									"    console.log('✅ Admin logged in successfully with session');",
+									"    console.log('🆔 Session ID embedded in JWT token');",
 									"} else {",
 									"    console.log('❌ Admin login failed');",
 									"}"
@@ -89,7 +89,7 @@
 					}
 				},
 				{
-					"name": "3. Test User Login",
+					"name": "3. Test User Login (Session-based)",
 					"event": [
 						{
 							"listen": "test",
@@ -98,8 +98,8 @@
 									"if (pm.response.code === 200) {",
 									"    const response = pm.response.json();",
 									"    pm.environment.set('userToken', response.data.access_token);",
-									"    pm.environment.set('userRefreshToken', response.data.refresh_token);",
-									"    console.log('✅ User logged in successfully');",
+									"    console.log('✅ User logged in successfully with session');",
+									"    console.log('🆔 Session ID embedded in JWT token');",
 									"} else {",
 									"    console.log('❌ User login failed');",
 									"}"
@@ -128,7 +128,23 @@
 					}
 				},
 				{
-					"name": "4. Get Admin Profile",
+					"name": "4. Get Admin Profile (Session Active)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    console.log('✅ Profile accessed - Session is active');",
+									"    console.log('🔄 Session TTL refreshed automatically');",
+									"} else if (pm.response.code === 401) {",
+									"    console.log('❌ Session expired - Need to login again');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "GET",
 						"header": [
@@ -143,49 +159,43 @@
 							"path": ["auth", "profile"]
 						}
 					}
+				}
+			]
 				},
 				{
-					"name": "5. Refresh Token",
+			"name": "🔒 Session Management",
+			"item": [
+				{
+					"name": "0. Test Session TTL Refresh",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"if (pm.response.code === 200) {",
-									"    const response = pm.response.json();",
-									"    pm.environment.set('adminToken', response.data.access_token);",
-									"    pm.environment.set('adminRefreshToken', response.data.refresh_token);",
-									"    console.log('✅ Token refreshed successfully');",
-									"}"
+									"pm.test('Session should extend on activity', function () {",
+									"    pm.expect(pm.response.code).to.equal(200);",
+									"});",
+									"console.log('✅ Session TTL extended by this request - Session remains active for another 1 minute');"
 								],
 								"type": "text/javascript"
 							}
 						}
 					],
 					"request": {
-						"method": "POST",
+						"method": "GET",
 						"header": [
 							{
-								"key": "Content-Type",
-								"value": "application/json"
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
 							}
 						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"refresh_token\": \"{{adminRefreshToken}}\"\n}"
-						},
 						"url": {
-							"raw": "{{baseUrl}}/auth/refresh",
+							"raw": "{{baseUrl}}/auth/profile",
 							"host": ["{{baseUrl}}"],
-							"path": ["auth", "refresh"]
+							"path": ["auth", "profile"]
 						}
 					}
-				}
-			]
 		},
-		{
-			"name": "🔒 Session Management",
-			"item": [
 				{
 					"name": "1. Change Password (Authenticated)",
 					"request": {
@@ -407,23 +417,30 @@
 					}
 				},
 				{
-					"name": "7. Logout Single Device",
+					"name": "7. Logout Single Device (Session Destroy)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    console.log('✅ Logged out successfully - Session destroyed');",
+									"} else {",
+									"    console.log('❌ Logout failed');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
 							{
 								"key": "Authorization",
 								"value": "Bearer {{userToken}}"
 							}
 						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"refresh_token\": \"{{userRefreshToken}}\"\n}"
-						},
 						"url": {
 							"raw": "{{baseUrl}}/auth/logout",
 							"host": ["{{baseUrl}}"],
@@ -432,24 +449,22 @@
 					}
 				},
 				{
-					"name": "8. Logout All Devices",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{adminToken}}"
+					"name": "8. Test Session After Logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 401) {",
+									"    console.log('✅ Access denied after logout as expected');",
+									"} else {",
+									"    console.log('❌ Should not have access after logout');",
+									"}"
+								],
+								"type": "text/javascript"
 							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/auth/logout-all-devices",
-							"host": ["{{baseUrl}}"],
-							"path": ["auth", "logout-all-devices"]
 						}
-					}
-				},
-				{
-					"name": "9. Test Blacklisted Token",
+					],
 					"request": {
 						"method": "GET",
 						"header": [

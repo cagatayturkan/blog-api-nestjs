@@ -9,7 +9,6 @@ import { PostEntity } from './posts/entities/post.entity';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { UserEntity } from './auth/entities/user.entity';
-import { TokenBlacklistEntity } from './auth/entities/token-blacklist.entity';
 import { ProjectEntity } from './projects/entities/project.entity';
 import { CategoryEntity } from './categories/entities/category.entity';
 import { UserProjectsModule } from './user-projects/user-projects.module';
@@ -55,7 +54,6 @@ import { SentryGlobalFilter } from '@sentry/nestjs/setup';
         entities: [
           PostEntity,
           UserEntity,
-          TokenBlacklistEntity,
           ProjectEntity,
           CategoryEntity,
         ],

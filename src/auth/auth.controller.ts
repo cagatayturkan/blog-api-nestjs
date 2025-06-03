@@ -20,8 +20,6 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiParam } from '@nestjs/swagger';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { LogoutDto } from './dto/logout.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto, ValidateResetTokenDto } from './dto/reset-password.dto';
 import { AuthService } from './auth.service';
@@ -65,18 +63,8 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({ transform: true }))
-  async login(@Body() loginDto: LoginDto): Promise<{ access_token: string, refresh_token: string, user: Partial<UserEntity> }> {
+  async login(@Body() loginDto: LoginDto): Promise<{ access_token: string, user: Partial<UserEntity> }> {
     return this.authService.login(loginDto);
-  }
-
-  @Post('refresh')
-  @ApiOperation({ summary: 'Refresh access token' })
-  @ApiResponse({ status: 200, description: 'Token refreshed successfully' })
-  @ApiResponse({ status: 401, description: 'Invalid refresh token' })
-  @HttpCode(HttpStatus.OK)
-  @UsePipes(new ValidationPipe({ transform: true }))
-  async refreshToken(@Body() refreshTokenDto: RefreshTokenDto): Promise<{ access_token: string, refresh_token: string }> {
-    return this.authService.refreshToken(refreshTokenDto);
   }
 
   @Post('forgot-password')
@@ -117,22 +105,9 @@ export class AuthController {
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
-  @UsePipes(new ValidationPipe({ transform: true }))
-  async logout(@Body() logoutDto: LogoutDto, @Req() req: RequestWithUser): Promise<{ message: string }> {
-    await this.authService.logout(logoutDto, req.user.token);
+  async logout(@Req() req: RequestWithUser): Promise<{ message: string }> {
+    await this.authService.logout(req.user.sessionId);
     return { message: 'Logged out successfully' };
-  }
-
-  @Post('logout-all-devices')
-  @ApiOperation({ summary: 'Logout from all devices' })
-  @ApiResponse({ status: 200, description: 'Logged out from all devices successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiBearerAuth('JWT-auth')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
-  async logoutFromAllDevices(@Req() req: RequestWithUser): Promise<{ message: string }> {
-    await this.authService.logoutFromAllDevices(req.user.id, req.user.token);
-    return { message: 'Logged out from all devices successfully' };
   }
 
   @Post('change-password')
@@ -162,11 +137,11 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
-  async changePasswordAuthenticated(
+  async changePassword(
     @Body() body: { oldPassword: string; newPassword: string },
     @Req() req: RequestWithUser
   ): Promise<{ message: string }> {
-    await this.authService.changePassword(req.user.id, body.oldPassword, body.newPassword, req.user.token);
+    await this.authService.changePassword(req.user.id, body.oldPassword, body.newPassword);
     return { message: 'Password changed successfully. Please login again.' };
   }
 
@@ -198,7 +173,7 @@ export class AuthController {
   // Admin-only endpoints
   @Get('users')
   @ApiOperation({ summary: 'Get all users (Admin only)' })
-  @ApiResponse({ status: 200, description: 'Users retrieved successfully' })
+  @ApiResponse({ status: 200, description: 'List of all users' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
   @ApiBearerAuth('JWT-auth')
@@ -208,101 +183,94 @@ export class AuthController {
     return this.authService.getAllUsers();
   }
 
-  // Protected endpoints (require authentication)
   @Get('users/:id')
-  @ApiOperation({ summary: 'Get user by ID' })
-  @ApiParam({ name: 'id', description: 'User ID', type: 'string' })
-  @ApiResponse({ status: 200, description: 'User retrieved successfully' })
+  @ApiOperation({ summary: 'Get user by ID (Admin or own profile)' })
+  @ApiParam({ name: 'id', description: 'User UUID', type: 'string' })
+  @ApiResponse({ status: 200, description: 'User details' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Can only access own profile or admin required' })
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiBearerAuth('JWT-auth')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.USER)
+  @UseGuards(JwtAuthGuard)
   async findUserById(
     @Param('id', ParseUUIDPipe) id: string,
     @Req() req: RequestWithUser
   ) {
-    // Users can only access their own profile, admins can access any
-    if (req.user.role === UserRole.USER && id !== req.user.id) {
+    // Users can only access their own profile unless they're admin
+    if (req.user.id !== id && req.user.role !== UserRole.SUPER_ADMIN) {
       throw new UnauthorizedException('You can only access your own profile');
     }
     return this.authService.getUserById(id);
   }
 
+  // Protected endpoints (require authentication)
   @Get('profile')
   @ApiOperation({ summary: 'Get current user profile' })
-  @ApiResponse({ status: 200, description: 'Profile retrieved successfully' })
+  @ApiResponse({ status: 200, description: 'User profile' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   async getProfile(@Req() req: RequestWithUser): Promise<Partial<UserEntity>> {
-    // The JWT strategy adds the user info to the request object
     return this.authService.getUserById(req.user.id);
   }
 
   @Put('users/:id')
-  @ApiOperation({ summary: 'Update user information' })
-  @ApiParam({ name: 'id', description: 'User ID', type: 'string' })
+  @ApiOperation({ summary: 'Update user (Admin or own profile)' })
+  @ApiParam({ name: 'id', description: 'User UUID', type: 'string' })
   @ApiResponse({ status: 200, description: 'User updated successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Can only update own profile or admin required' })
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiBearerAuth('JWT-auth')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.USER)
+  @UseGuards(JwtAuthGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   async updateUser(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,
     @Req() req: RequestWithUser
   ) {
-    // Users can only update their own profile, admins can update any
-    if (req.user.role === UserRole.USER && id !== req.user.id) {
+    // Users can only update their own profile unless they're admin
+    if (req.user.id !== id && req.user.role !== UserRole.SUPER_ADMIN) {
       throw new UnauthorizedException('You can only update your own profile');
     }
     return this.authService.updateUser(id, updateUserDto);
   }
 
   @Patch('users/:id/role')
-  @ApiOperation({ summary: 'Update user role (Super Admin only)' })
-  @ApiParam({ name: 'id', description: 'User ID', type: 'string' })
+  @ApiOperation({ summary: 'Update user role (Admin only)' })
+  @ApiParam({ name: 'id', description: 'User UUID', type: 'string' })
   @ApiResponse({ status: 200, description: 'User role updated successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Super Admin access required' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPER_ADMIN)
-  @UsePipes(new ValidationPipe({ transform: true }))
   async updateUserRole(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserRoleDto: UpdateUserRoleDto
   ): Promise<Partial<UserEntity>> {
-    // Only SUPER_ADMIN can change user roles
-    // Prevent SUPER_ADMIN from demoting themselves
     return this.authService.updateUserRole(id, updateUserRoleDto.role);
   }
 
   @Delete('users/:id')
-  @ApiOperation({ summary: 'Delete user' })
-  @ApiParam({ name: 'id', description: 'User ID', type: 'string' })
-  @ApiResponse({ status: 204, description: 'User deleted successfully' })
+  @ApiOperation({ summary: 'Delete user (Admin only)' })
+  @ApiParam({ name: 'id', description: 'User UUID', type: 'string' })
+  @ApiResponse({ status: 200, description: 'User deleted successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.USER)
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @Roles(UserRole.SUPER_ADMIN)
   async deleteUser(
     @Param('id', ParseUUIDPipe) id: string,
     @Req() req: RequestWithUser
   ): Promise<void> {
-    // SUPER_ADMIN can delete any user, others can only delete their own profile
-    // Prevent SUPER_ADMIN from deleting themselves
-    if (req.user.role === UserRole.SUPER_ADMIN && id === req.user.id) {
-      throw new UnauthorizedException('You cannot delete your own admin account');
+    // Prevent admin from deleting themselves
+    if (req.user.id === id) {
+      throw new UnauthorizedException('You cannot delete your own account');
     }
-    if (req.user.role !== UserRole.SUPER_ADMIN && id !== req.user.id) {
-      throw new UnauthorizedException('You can only delete your own profile');
-    }
-    return this.authService.removeUser(id);
+    await this.authService.removeUser(id);
   }
 } 

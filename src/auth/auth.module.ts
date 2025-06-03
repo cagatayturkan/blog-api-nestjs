@@ -3,9 +3,8 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserEntity } from './entities/user.entity';
-import { TokenBlacklistEntity } from './entities/token-blacklist.entity';
 import { UserRepository } from './repositories/user.repository';
-import { TokenBlacklistService } from './services/token-blacklist.service';
+import { SessionService } from './services/session.service';
 import { PasswordResetService } from './services/password-reset.service';
 import { MailService } from './services/mail.service';
 import { JwtModule } from '@nestjs/jwt';
@@ -20,15 +19,15 @@ import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserEntity, TokenBlacklistEntity]),
+    TypeOrmModule.forFeature([UserEntity]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     ScheduleModule.forRoot(),
-    // Add cache module for token blacklist caching
+    // Add cache module for session management
     CacheModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        ttl: configService.get<number>('CACHE_TTL', 20 * 60 * 1000), // 20 minutes default TTL
+        ttl: configService.get<number>('CACHE_TTL', 5 * 60 * 1000), // 5 minutes default TTL
         max: configService.get<number>('CACHE_MAX_ITEMS', 1000), // Maximum number of items in cache
       }),
     }),
@@ -43,13 +42,13 @@ import { CacheModule } from '@nestjs/cache-manager';
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET', 'your-secret-key'),
         signOptions: {
-          expiresIn: configService.get<string>('JWT_EXPIRES_IN', '1h'),
+          expiresIn: configService.get<string>('JWT_EXPIRES_IN', '24h'), // Longer expiry since we use sessions
         },
       }),
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, UserRepository, TokenBlacklistService, PasswordResetService, MailService, JwtStrategy, GoogleStrategy, AdminSeeder],
-  exports: [PassportModule, JwtStrategy, TokenBlacklistService],
+  providers: [AuthService, UserRepository, SessionService, PasswordResetService, MailService, JwtStrategy, GoogleStrategy, AdminSeeder],
+  exports: [PassportModule, JwtStrategy, SessionService],
 })
 export class AuthModule {} 

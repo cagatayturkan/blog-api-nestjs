@@ -3,7 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { UserRepository } from '../repositories/user.repository';
-import { TokenBlacklistService } from '../services/token-blacklist.service';
+import { SessionService } from '../services/session.service';
 import { Request } from 'express';
 
 @Injectable()
@@ -11,7 +11,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private configService: ConfigService,
     private userRepository: UserRepository,
-    private tokenBlacklistService: TokenBlacklistService,
+    private sessionService: SessionService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -25,15 +25,19 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // Extract the token from the request
     const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
     
-    
     if (!token) {
       throw new UnauthorizedException('Token not found');
     }
 
-    // Check if token is blacklisted
-    const isBlacklisted = await this.tokenBlacklistService.isTokenBlacklisted(token);
-    if (isBlacklisted) {
-      throw new UnauthorizedException('Token has been revoked');
+    // Check if session ID exists in payload
+    if (!payload.sessionId) {
+      throw new UnauthorizedException('Session ID not found in token');
+    }
+
+    // Validate session and refresh its TTL
+    const sessionResult = await this.sessionService.validateAndRefreshSession(payload.sessionId);
+    if (!sessionResult.valid) {
+      throw new UnauthorizedException('Session has expired or is invalid');
     }
 
     // Get full user data from database to include role
@@ -41,19 +45,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
-
-    // Check if all user tokens are blacklisted (e.g., after password change)
-    const areUserTokensBlacklisted = await this.tokenBlacklistService.isUserTokensBlacklisted(user.id, token, payload.iat);
-    if (areUserTokensBlacklisted) {
-      throw new UnauthorizedException('All user sessions have been invalidated');
-    }
     
     // The value returned here will be available as 'req.user'
     return { 
       id: user.id, 
       email: user.email,
       role: user.role,
-      token: token // Store token for potential blacklisting
+      sessionId: payload.sessionId,
+      token: token // Store token for potential future use
     };
   }
 } 

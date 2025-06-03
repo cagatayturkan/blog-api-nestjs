@@ -6,6 +6,7 @@ export interface RequestWithUser extends Request {
     id: string;
     email: string;
     role: UserRole;
+    sessionId: string;
     token: string;
   };
 } 

@@ -3,17 +3,13 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { LogoutDto } from './dto/logout.dto';
 import { UserRepository, GoogleUserDto } from './repositories/user.repository';
 import { UserEntity } from './entities/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRole } from './enums/user-role.enum';
-import { TokenBlacklistService } from './services/token-blacklist.service';
+import { SessionService } from './services/session.service';
 import { MailService } from './services/mail.service';
-import { BlacklistReason } from './enums/blacklist-reason.enum';
 import * as bcrypt from 'bcrypt';
-import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -21,7 +17,7 @@ export class AuthService {
     private readonly userRepository: UserRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly tokenBlacklistService: TokenBlacklistService,
+    private readonly sessionService: SessionService,
     private readonly mailService: MailService,
   ) {}
 
@@ -47,7 +43,7 @@ export class AuthService {
     return result;
   }
 
-  async login(loginDto: LoginDto): Promise<{ access_token: string, refresh_token: string, user: Partial<UserEntity> }> {
+  async login(loginDto: LoginDto): Promise<{ access_token: string, user: Partial<UserEntity> }> {
     // Find the user with the provided email
     const user = await this.userRepository.findByEmail(loginDto.email);
     
@@ -64,29 +60,28 @@ export class AuthService {
       throw new UnauthorizedException('Email verification required. Please verify your email address before logging in.');
     }
 
-    // Generate tokens
+    // Create session
+    const sessionId = await this.sessionService.createSession(user.id);
+
+    // Generate JWT with session ID
     const payload = { 
       email: user.email, 
       sub: user.id,
+      sessionId: sessionId, // Add session ID to JWT payload
     };
     
     const accessToken = this.jwtService.sign(payload);
-    const refreshToken = this.generateRefreshToken();
-    
-    // Save refresh token to database
-    await this.userRepository.updateRefreshToken(user.id, refreshToken);
     
     // Don't include password in the response
     const { password, ...result } = user;
     
     return {
       access_token: accessToken,
-      refresh_token: refreshToken,
       user: result
     };
   }
 
-  async googleLogin(googleUser: any): Promise<{ access_token: string, refresh_token: string, user: Partial<UserEntity> }> {
+  async googleLogin(googleUser: any): Promise<{ access_token: string, user: Partial<UserEntity> }> {
     // Check if user exists in our database by email
     let user = await this.userRepository.findByEmail(googleUser.email);
     
@@ -129,24 +124,23 @@ export class AuthService {
       throw new UnauthorizedException('Email verification required. Please verify your email address before logging in.');
     }
 
-    // Generate tokens
+    // Create session
+    const sessionId = await this.sessionService.createSession(user.id);
+
+    // Generate JWT with session ID
     const payload = { 
       email: user.email, 
       sub: user.id,
+      sessionId: sessionId, // Add session ID to JWT payload
     };
     
     const accessToken = this.jwtService.sign(payload);
-    const refreshToken = this.generateRefreshToken();
-    
-    // Save refresh token to database
-    await this.userRepository.updateRefreshToken(user.id, refreshToken);
     
     // Don't include password in the response
     const { password, ...result } = user;
     
     return {
       access_token: accessToken,
-      refresh_token: refreshToken,
       user: result
     };
   }
@@ -244,76 +238,12 @@ export class AuthService {
     return result;
   }
 
-  // Refresh token methods
-  private generateRefreshToken(): string {
-    return crypto.randomBytes(32).toString('hex');
+  async logout(sessionId: string): Promise<void> {
+    // Destroy the session
+    await this.sessionService.destroySession(sessionId);
   }
 
-  async refreshToken(refreshTokenDto: RefreshTokenDto): Promise<{ access_token: string, refresh_token: string }> {
-    const { refresh_token } = refreshTokenDto;
-    
-    // Find user by refresh token
-    const user = await this.userRepository.findByRefreshToken(refresh_token);
-    if (!user) {
-      throw new UnauthorizedException('Invalid refresh token');
-    }
-
-    // Generate new tokens
-    const payload = { 
-      email: user.email, 
-      sub: user.id,
-    };
-    
-    const accessToken = this.jwtService.sign(payload);
-    const newRefreshToken = this.generateRefreshToken();
-    
-    // Update refresh token in database (token rotation)
-    await this.userRepository.updateRefreshToken(user.id, newRefreshToken);
-    
-    return {
-      access_token: accessToken,
-      refresh_token: newRefreshToken,
-    };
-  }
-
-  async logout(logoutDto: LogoutDto, accessToken?: string): Promise<void> {
-    const { refresh_token } = logoutDto;
-    
-    // Find user by refresh token
-    const user = await this.userRepository.findByRefreshToken(refresh_token);
-    if (!user) {
-      throw new UnauthorizedException('Invalid refresh token');
-    }
-
-    // Add access token to blacklist if provided
-    if (accessToken) {
-      await this.tokenBlacklistService.addToBlacklist(accessToken, user.id, BlacklistReason.LOGOUT);
-    }
-
-    // Remove refresh token from database  
-    await this.userRepository.updateRefreshToken(user.id, null);
-  }
-
-  async logoutFromAllDevices(userId: string, currentToken?: string): Promise<void> {
-    // Find user
-    const user = await this.userRepository.findById(userId);
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    // Blacklist all tokens for this user
-    await this.tokenBlacklistService.blacklistAllUserTokens(userId, BlacklistReason.LOGOUT_ALL_DEVICES);
-
-    // Add current token to blacklist if provided
-    if (currentToken) {
-      await this.tokenBlacklistService.addToBlacklist(currentToken, userId, BlacklistReason.LOGOUT_ALL_DEVICES);
-    }
-
-    // Remove refresh token from database
-    await this.userRepository.updateRefreshToken(userId, null);
-  }
-
-  async changePassword(userId: string, oldPassword: string, newPassword: string, currentToken?: string): Promise<void> {
+  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<void> {
     // Find user
     const user = await this.userRepository.findById(userId);
     if (!user) {
@@ -332,16 +262,7 @@ export class AuthService {
     // Update password
     await this.userRepository.update(userId, { password: hashedPassword });
 
-    // Remove refresh token from database (this will invalidate refresh token based sessions)
-    await this.userRepository.updateRefreshToken(userId, null);
-
-    // Blacklist all existing access tokens for this user
-    // Pass the currentToken to exclude it from immediate blacklisting if it's the one being used for this very request
-    await this.tokenBlacklistService.blacklistAllUserTokens(userId, BlacklistReason.PASSWORD_CHANGE, currentToken);
-  }
-
-  async invalidateCurrentSession(userId: string, currentToken: string): Promise<void> {
-    // Add current token to blacklist
-    await this.tokenBlacklistService.addToBlacklist(currentToken, userId, BlacklistReason.PASSWORD_CHANGE);
+    // Note: With simplified session management, user will need to login again 
+    // when their current session expires naturally
   }
 } 
