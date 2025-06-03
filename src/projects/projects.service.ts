@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ProjectEntity } from './entities/project.entity';
@@ -56,14 +60,19 @@ export class ProjectsService {
     });
 
     if (existingProject) {
-      throw new ConflictException(`Project with name "${createProjectDto.name}" already exists`);
+      throw new ConflictException(
+        `Project with name "${createProjectDto.name}" already exists`,
+      );
     }
 
     const project = this.projectRepository.create(createProjectDto);
     return this.projectRepository.save(project);
   }
 
-  async update(id: string, updateProjectDto: UpdateProjectDto): Promise<ProjectEntity> {
+  async update(
+    id: string,
+    updateProjectDto: UpdateProjectDto,
+  ): Promise<ProjectEntity> {
     const project = await this.findOne(id);
 
     // Check if new name conflicts with existing project (if name is being changed)
@@ -73,7 +82,9 @@ export class ProjectsService {
       });
 
       if (existingProject) {
-        throw new ConflictException(`Project with name "${updateProjectDto.name}" already exists`);
+        throw new ConflictException(
+          `Project with name "${updateProjectDto.name}" already exists`,
+        );
       }
     }
 
@@ -83,7 +94,7 @@ export class ProjectsService {
 
   async remove(id: string): Promise<void> {
     const project = await this.findOne(id);
-    
+
     // Soft delete - set is_active to false instead of actual deletion
     // This preserves data integrity with related posts and categories
     project.is_active = false;
@@ -108,19 +119,23 @@ export class ProjectsService {
       .getCount();
 
     const categoriesCount = await this.projectRepository
-      .createQueryBuilder('project')  
+      .createQueryBuilder('project')
       .leftJoin('project.categories', 'categories')
       .where('project.id = :id', { id })
       .getCount();
 
     if (postsCount > 0) {
-      throw new ConflictException(`Cannot delete project "${project.name}" because it has ${postsCount} posts`);
+      throw new ConflictException(
+        `Cannot delete project "${project.name}" because it has ${postsCount} posts`,
+      );
     }
 
     if (categoriesCount > 0) {
-      throw new ConflictException(`Cannot delete project "${project.name}" because it has ${categoriesCount} categories`);
+      throw new ConflictException(
+        `Cannot delete project "${project.name}" because it has ${categoriesCount} categories`,
+      );
     }
 
     await this.projectRepository.remove(project);
   }
-} 
+}

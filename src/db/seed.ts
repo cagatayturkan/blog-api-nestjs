@@ -35,8 +35,12 @@ async function bootstrap() {
   const appContext = await NestFactory.createApplicationContext(AppModule);
   const postsService = appContext.get(PostsService);
   const userRepository = appContext.get(UserRepository);
-  const projectRepository = appContext.get<Repository<ProjectEntity>>(getRepositoryToken(ProjectEntity));
-  const categoryRepository = appContext.get<Repository<CategoryEntity>>(getRepositoryToken(CategoryEntity));
+  const projectRepository = appContext.get<Repository<ProjectEntity>>(
+    getRepositoryToken(ProjectEntity),
+  );
+  const categoryRepository = appContext.get<Repository<CategoryEntity>>(
+    getRepositoryToken(CategoryEntity),
+  );
 
   console.log('Seeding database...');
 
@@ -81,7 +85,10 @@ async function bootstrap() {
     const fileContent = fs.readFileSync(mockFilePath, 'utf-8');
     mockData = JSON.parse(fileContent) as MockPost[];
   } catch (error) {
-    console.error(`Error reading or parsing mock.json from ${mockFilePath}:`, error);
+    console.error(
+      `Error reading or parsing mock.json from ${mockFilePath}:`,
+      error,
+    );
     await appContext.close();
     return;
   }
@@ -92,7 +99,7 @@ async function bootstrap() {
   for (const mockPost of mockData) {
     const projectName = mockPost.type;
     const projectId = projectMap.get(projectName);
-    
+
     if (!projectId) {
       console.warn(`Project "${projectName}" not found. Skipping post.`);
       skippedCount++;
@@ -108,7 +115,9 @@ async function bootstrap() {
       continue; // Skip if exists
     } catch (error) {
       if (error.name !== 'NotFoundException') {
-        console.warn(`Error checking for existing post ${projectName}/${slug}: ${error.message}. Skipping this one.`);
+        console.warn(
+          `Error checking for existing post ${projectName}/${slug}: ${error.message}. Skipping this one.`,
+        );
         skippedCount++;
         continue;
       }
@@ -117,11 +126,11 @@ async function bootstrap() {
     // Create categories for this project if they don't exist
     const categoryNames: string[] = [];
     for (const categoryName of mockPost.attributes['our-news-category'] || []) {
-      let category = await categoryRepository.findOneBy({ 
-        name: categoryName, 
-        project_id: projectId 
+      let category = await categoryRepository.findOneBy({
+        name: categoryName,
+        project_id: projectId,
       });
-      
+
       if (!category) {
         category = categoryRepository.create({
           name: categoryName,
@@ -129,9 +138,11 @@ async function bootstrap() {
           slug: categoryName.toLowerCase().replace(/\s+/g, '-'),
         });
         await categoryRepository.save(category);
-        console.log(`Created category: ${categoryName} for project ${projectName}`);
+        console.log(
+          `Created category: ${categoryName} for project ${projectName}`,
+        );
       }
-      
+
       categoryNames.push(categoryName);
     }
 
@@ -139,17 +150,19 @@ async function bootstrap() {
       projectId: projectId,
       title: mockPost.attributes.title,
       slug: slug,
-      contentBlocks: mockPost.attributes.boxContent.map(cb => ({
+      contentBlocks: mockPost.attributes.boxContent.map((cb) => ({
         order: cb.order,
         title: cb.title,
         content: cb.content,
       })),
       categories: categoryNames,
       authors: mockPost.attributes.authors || [],
-      seo: mockPost.attributes.seo ? {
-        title: mockPost.attributes.seo.metaTitle,
-        description: mockPost.attributes.seo.metaDesc,
-      } : undefined,
+      seo: mockPost.attributes.seo
+        ? {
+            title: mockPost.attributes.seo.metaTitle,
+            description: mockPost.attributes.seo.metaDesc,
+          }
+        : undefined,
       featuredImage: mockPost.attributes.img || undefined,
       language: mockPost.lang,
       isPublished: true,
@@ -159,7 +172,10 @@ async function bootstrap() {
       await postsService.create(createPostDto, adminUserId);
       seededCount++;
     } catch (error) {
-      console.error(`Error seeding post ${projectName}/${createPostDto.slug}:`, error.message);
+      console.error(
+        `Error seeding post ${projectName}/${createPostDto.slug}:`,
+        error.message,
+      );
       skippedCount++;
     }
   }
@@ -173,7 +189,7 @@ async function bootstrap() {
   await appContext.close();
 }
 
-bootstrap().catch(err => {
+bootstrap().catch((err) => {
   console.error('Unhandled error during seeding process:', err);
   process.exit(1);
-}); 
+});

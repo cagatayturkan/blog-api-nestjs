@@ -6,7 +6,7 @@ export class UpdateUserDto {
     description: 'User email address',
     example: 'newemail@example.com',
     format: 'email',
-    required: false
+    required: false,
   })
   @IsEmail()
   @IsOptional()
@@ -15,7 +15,7 @@ export class UpdateUserDto {
   @ApiProperty({
     description: 'User first name',
     example: 'John',
-    required: false
+    required: false,
   })
   @IsString()
   @IsOptional()
@@ -24,7 +24,7 @@ export class UpdateUserDto {
   @ApiProperty({
     description: 'User last name',
     example: 'Doe',
-    required: false
+    required: false,
   })
   @IsString()
   @IsOptional()
@@ -34,10 +34,10 @@ export class UpdateUserDto {
     description: 'New password (minimum 8 characters)',
     example: 'newpassword123',
     minLength: 8,
-    required: false
+    required: false,
   })
   @IsString()
   @IsOptional()
   @MinLength(8, { message: 'Password must be at least 8 characters long' })
   password?: string;
-} 
+}

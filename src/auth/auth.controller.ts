@@ -1,11 +1,11 @@
-import { 
-  Controller, 
-  Post, 
-  Body, 
-  ValidationPipe, 
-  UsePipes, 
-  HttpStatus, 
-  HttpCode, 
+import {
+  Controller,
+  Post,
+  Body,
+  ValidationPipe,
+  UsePipes,
+  HttpStatus,
+  HttpCode,
   Get,
   Param,
   Put,
@@ -15,13 +15,23 @@ import {
   Req,
   UnauthorizedException,
   Res,
-  Patch
+  Patch,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiParam,
+} from '@nestjs/swagger';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { ResetPasswordDto, ValidateResetTokenDto } from './dto/reset-password.dto';
+import {
+  ResetPasswordDto,
+  ValidateResetTokenDto,
+} from './dto/reset-password.dto';
 import { AuthService } from './auth.service';
 import { PasswordResetService } from './services/password-reset.service';
 import { UserEntity } from './entities/user.entity';
@@ -42,7 +52,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly passwordResetService: PasswordResetService,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
   ) {}
 
   // Public endpoints (no authentication required)
@@ -53,7 +63,9 @@ export class AuthController {
   @ApiResponse({ status: 409, description: 'User already exists' })
   @HttpCode(HttpStatus.CREATED)
   @UsePipes(new ValidationPipe({ transform: true }))
-  async register(@Body() registerDto: RegisterDto): Promise<Partial<UserEntity>> {
+  async register(
+    @Body() registerDto: RegisterDto,
+  ): Promise<Partial<UserEntity>> {
     return this.authService.register(registerDto);
   }
 
@@ -63,19 +75,28 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({ transform: true }))
-  async login(@Body() loginDto: LoginDto): Promise<{ access_token: string, user: Partial<UserEntity> }> {
+  async login(
+    @Body() loginDto: LoginDto,
+  ): Promise<{ access_token: string; user: Partial<UserEntity> }> {
     return this.authService.login(loginDto);
   }
 
   @Post('forgot-password')
   @ApiOperation({ summary: 'Request password reset email' })
-  @ApiResponse({ status: 200, description: 'Password reset email sent if email exists' })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset email sent if email exists',
+  })
   @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
   @ApiResponse({ status: 429, description: 'Too many requests - rate limited' })
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({ transform: true }))
-  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto): Promise<{ message: string }> {
-    return this.passwordResetService.requestPasswordReset(forgotPasswordDto.email);
+  async forgotPassword(
+    @Body() forgotPasswordDto: ForgotPasswordDto,
+  ): Promise<{ message: string }> {
+    return this.passwordResetService.requestPasswordReset(
+      forgotPasswordDto.email,
+    );
   }
 
   @Post('reset-password-with-token')
@@ -84,8 +105,13 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Invalid or expired token' })
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({ transform: true }))
-  async resetPasswordWithToken(@Body() resetPasswordDto: ResetPasswordDto): Promise<{ message: string }> {
-    return this.passwordResetService.resetPassword(resetPasswordDto.token, resetPasswordDto.newPassword);
+  async resetPasswordWithToken(
+    @Body() resetPasswordDto: ResetPasswordDto,
+  ): Promise<{ message: string }> {
+    return this.passwordResetService.resetPassword(
+      resetPasswordDto.token,
+      resetPasswordDto.newPassword,
+    );
   }
 
   @Post('validate-reset-token')
@@ -94,7 +120,9 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({ transform: true }))
-  async validateResetToken(@Body() validateTokenDto: ValidateResetTokenDto): Promise<{ valid: boolean; email?: string }> {
+  async validateResetToken(
+    @Body() validateTokenDto: ValidateResetTokenDto,
+  ): Promise<{ valid: boolean; email?: string }> {
     return this.passwordResetService.validateResetToken(validateTokenDto.token);
   }
 
@@ -120,28 +148,35 @@ export class AuthController {
         oldPassword: {
           type: 'string',
           description: 'Current password',
-          example: 'final_password456'
+          example: 'final_password456',
         },
         newPassword: {
           type: 'string',
           description: 'New password (minimum 8 characters)',
-          example: 'new_secure_password789'
-        }
+          example: 'new_secure_password789',
+        },
       },
-      required: ['oldPassword', 'newPassword']
-    }
+      required: ['oldPassword', 'newPassword'],
+    },
   })
   @ApiResponse({ status: 200, description: 'Password changed successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized or invalid current password' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized or invalid current password',
+  })
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   async changePassword(
     @Body() body: { oldPassword: string; newPassword: string },
-    @Req() req: RequestWithUser
+    @Req() req: RequestWithUser,
   ): Promise<{ message: string }> {
-    await this.authService.changePassword(req.user.id, body.oldPassword, body.newPassword);
+    await this.authService.changePassword(
+      req.user.id,
+      body.oldPassword,
+      body.newPassword,
+    );
     return { message: 'Password changed successfully. Please login again.' };
   }
 
@@ -162,11 +197,14 @@ export class AuthController {
   async googleAuthRedirect(@Req() req: any, @Res() res: Response) {
     // After successful Google authentication, the user is redirected here
     const authResult = await this.authService.googleLogin(req.user);
-    
+
     // Redirect to frontend with token in query params
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
+    const frontendUrl = this.configService.get<string>(
+      'FRONTEND_URL',
+      'http://localhost:3000',
+    );
     const redirectUrl = `${frontendUrl}/auth/google-callback?token=${authResult.access_token}`;
-    
+
     return res.redirect(redirectUrl);
   }
 
@@ -175,7 +213,10 @@ export class AuthController {
   @ApiOperation({ summary: 'Get all users (Admin only)' })
   @ApiResponse({ status: 200, description: 'List of all users' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
   @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPER_ADMIN)
@@ -188,13 +229,16 @@ export class AuthController {
   @ApiParam({ name: 'id', description: 'User UUID', type: 'string' })
   @ApiResponse({ status: 200, description: 'User details' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Can only access own profile or admin required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Can only access own profile or admin required',
+  })
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   async findUserById(
     @Param('id', ParseUUIDPipe) id: string,
-    @Req() req: RequestWithUser
+    @Req() req: RequestWithUser,
   ) {
     // Users can only access their own profile unless they're admin
     if (req.user.id !== id && req.user.role !== UserRole.SUPER_ADMIN) {
@@ -219,7 +263,10 @@ export class AuthController {
   @ApiParam({ name: 'id', description: 'User UUID', type: 'string' })
   @ApiResponse({ status: 200, description: 'User updated successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Can only update own profile or admin required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Can only update own profile or admin required',
+  })
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
@@ -227,7 +274,7 @@ export class AuthController {
   async updateUser(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,
-    @Req() req: RequestWithUser
+    @Req() req: RequestWithUser,
   ) {
     // Users can only update their own profile unless they're admin
     if (req.user.id !== id && req.user.role !== UserRole.SUPER_ADMIN) {
@@ -241,14 +288,17 @@ export class AuthController {
   @ApiParam({ name: 'id', description: 'User UUID', type: 'string' })
   @ApiResponse({ status: 200, description: 'User role updated successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPER_ADMIN)
   async updateUserRole(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateUserRoleDto: UpdateUserRoleDto
+    @Body() updateUserRoleDto: UpdateUserRoleDto,
   ): Promise<Partial<UserEntity>> {
     return this.authService.updateUserRole(id, updateUserRoleDto.role);
   }
@@ -258,14 +308,17 @@ export class AuthController {
   @ApiParam({ name: 'id', description: 'User UUID', type: 'string' })
   @ApiResponse({ status: 200, description: 'User deleted successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPER_ADMIN)
   async deleteUser(
     @Param('id', ParseUUIDPipe) id: string,
-    @Req() req: RequestWithUser
+    @Req() req: RequestWithUser,
   ): Promise<void> {
     // Prevent admin from deleting themselves
     if (req.user.id === id) {
@@ -273,4 +326,4 @@ export class AuthController {
     }
     await this.authService.removeUser(id);
   }
-} 
+}

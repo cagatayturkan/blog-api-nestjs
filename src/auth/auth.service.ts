@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { LoginDto } from './dto/login.dto';
@@ -23,7 +28,9 @@ export class AuthService {
 
   async register(registerDto: RegisterDto): Promise<Partial<UserEntity>> {
     // Check if user with this email already exists
-    const existingUser = await this.userRepository.findByEmail(registerDto.email);
+    const existingUser = await this.userRepository.findByEmail(
+      registerDto.email,
+    );
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
     }
@@ -43,48 +50,57 @@ export class AuthService {
     return result;
   }
 
-  async login(loginDto: LoginDto): Promise<{ access_token: string, user: Partial<UserEntity> }> {
+  async login(
+    loginDto: LoginDto,
+  ): Promise<{ access_token: string; user: Partial<UserEntity> }> {
     // Find the user with the provided email
     const user = await this.userRepository.findByEmail(loginDto.email);
-    
+
     // Check if user exists and password matches
     if (!user || !(await user.validatePassword(loginDto.password))) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
     // Check email verification if required
-    const requireEmailVerificationRaw = this.configService.get<string>('REQUIRE_EMAIL_VERIFICATION', 'false');
+    const requireEmailVerificationRaw = this.configService.get<string>(
+      'REQUIRE_EMAIL_VERIFICATION',
+      'false',
+    );
     const requireEmailVerification = requireEmailVerificationRaw === 'true';
-    
+
     if (requireEmailVerification && !user.is_email_verified) {
-      throw new UnauthorizedException('Email verification required. Please verify your email address before logging in.');
+      throw new UnauthorizedException(
+        'Email verification required. Please verify your email address before logging in.',
+      );
     }
 
     // Create session
     const sessionId = await this.sessionService.createSession(user.id);
 
     // Generate JWT with session ID
-    const payload = { 
-      email: user.email, 
+    const payload = {
+      email: user.email,
       sub: user.id,
       sessionId: sessionId, // Add session ID to JWT payload
     };
-    
+
     const accessToken = this.jwtService.sign(payload);
-    
+
     // Don't include password in the response
     const { password, ...result } = user;
-    
+
     return {
       access_token: accessToken,
-      user: result
+      user: result,
     };
   }
 
-  async googleLogin(googleUser: any): Promise<{ access_token: string, user: Partial<UserEntity> }> {
+  async googleLogin(
+    googleUser: any,
+  ): Promise<{ access_token: string; user: Partial<UserEntity> }> {
     // Check if user exists in our database by email
     let user = await this.userRepository.findByEmail(googleUser.email);
-    
+
     if (!user) {
       // Create new user if doesn't exist
       const googleUserData: GoogleUserDto = {
@@ -93,9 +109,9 @@ export class AuthService {
         lastName: googleUser.lastName,
         google_id: googleUser.id || googleUser.sub, // Use Google's ID as identifier
         picture: googleUser.picture,
-        is_email_verified: true // Google already verified the email
+        is_email_verified: true, // Google already verified the email
       };
-      
+
       user = await this.userRepository.createWithGoogle(googleUserData);
     } else {
       // Update existing user with Google information if needed
@@ -103,12 +119,12 @@ export class AuthService {
         google_id: googleUser.id || googleUser.sub,
         is_email_verified: true, // Google login always verifies email
       };
-      
+
       // Only update picture if user doesn't have one already
       if (user.picture === null && googleUser.picture) {
         updateData.picture = googleUser.picture;
       }
-      
+
       user = await this.userRepository.update(user.id, updateData);
     }
 
@@ -118,34 +134,42 @@ export class AuthService {
     }
 
     // Check email verification if required (though Google users should always be verified)
-    const requireEmailVerificationRaw = this.configService.get<string>('REQUIRE_EMAIL_VERIFICATION', 'false');
+    const requireEmailVerificationRaw = this.configService.get<string>(
+      'REQUIRE_EMAIL_VERIFICATION',
+      'false',
+    );
     const requireEmailVerification = requireEmailVerificationRaw === 'true';
     if (requireEmailVerification && !user.is_email_verified) {
-      throw new UnauthorizedException('Email verification required. Please verify your email address before logging in.');
+      throw new UnauthorizedException(
+        'Email verification required. Please verify your email address before logging in.',
+      );
     }
 
     // Create session
     const sessionId = await this.sessionService.createSession(user.id);
 
     // Generate JWT with session ID
-    const payload = { 
-      email: user.email, 
+    const payload = {
+      email: user.email,
       sub: user.id,
       sessionId: sessionId, // Add session ID to JWT payload
     };
-    
+
     const accessToken = this.jwtService.sign(payload);
-    
+
     // Don't include password in the response
     const { password, ...result } = user;
-    
+
     return {
       access_token: accessToken,
-      user: result
+      user: result,
     };
   }
 
-  async updateUser(id: string, updateUserDto: UpdateUserDto): Promise<Partial<UserEntity>> {
+  async updateUser(
+    id: string,
+    updateUserDto: UpdateUserDto,
+  ): Promise<Partial<UserEntity>> {
     // Check if user exists
     const user = await this.userRepository.findById(id);
     if (!user) {
@@ -154,24 +178,26 @@ export class AuthService {
 
     // Map DTO to entity fields
     const updateData: Partial<UserEntity> = {};
-    
+
     if (updateUserDto.email) {
       // Check if email is already used by another user
-      const existingUser = await this.userRepository.findByEmail(updateUserDto.email);
+      const existingUser = await this.userRepository.findByEmail(
+        updateUserDto.email,
+      );
       if (existingUser && existingUser.id !== id) {
         throw new ConflictException('Email already in use');
       }
       updateData.email = updateUserDto.email;
     }
-    
+
     if (updateUserDto.firstName) {
       updateData.first_name = updateUserDto.firstName;
     }
-    
+
     if (updateUserDto.lastName) {
       updateData.last_name = updateUserDto.lastName;
     }
-    
+
     if (updateUserDto.password) {
       // Hash the password manually since @BeforeInsert is only called during creation
       const salt = await bcrypt.genSalt();
@@ -212,15 +238,18 @@ export class AuthService {
 
   async getAllUsers(): Promise<Partial<UserEntity>[]> {
     const users = await this.userRepository.findAll();
-    
+
     // Remove passwords from response
-    return users.map(user => {
+    return users.map((user) => {
       const { password, ...result } = user;
       return result;
     });
   }
 
-  async updateUserRole(id: string, role: UserRole): Promise<Partial<UserEntity>> {
+  async updateUserRole(
+    id: string,
+    role: UserRole,
+  ): Promise<Partial<UserEntity>> {
     // Check if user exists
     const user = await this.userRepository.findById(id);
     if (!user) {
@@ -243,7 +272,11 @@ export class AuthService {
     await this.sessionService.destroySession(sessionId);
   }
 
-  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<void> {
+  async changePassword(
+    userId: string,
+    oldPassword: string,
+    newPassword: string,
+  ): Promise<void> {
     // Find user
     const user = await this.userRepository.findById(userId);
     if (!user) {
@@ -262,7 +295,7 @@ export class AuthService {
     // Update password
     await this.userRepository.update(userId, { password: hashedPassword });
 
-    // Note: With simplified session management, user will need to login again 
+    // Note: With simplified session management, user will need to login again
     // when their current session expires naturally
   }
-} 
+}

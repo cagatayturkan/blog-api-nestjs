@@ -1,11 +1,6 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { UserRepository } from '../repositories/user.repository';
 import { MailService } from './mail.service';
-import { SessionService } from './session.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { v4 as uuidv4 } from 'uuid';
 import * as bcrypt from 'bcrypt';
@@ -16,7 +11,6 @@ export class PasswordResetService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly mailService: MailService,
-    private readonly sessionService: SessionService,
   ) {}
 
   async requestPasswordReset(email: string): Promise<{ message: string }> {
@@ -78,7 +72,7 @@ export class PasswordResetService {
   ): Promise<{ message: string }> {
     // Find user with valid reset token
     const users = await this.userRepository.findUsersWithResetToken();
-    const user = users.find(u => u.isResetTokenValid(token));
+    const user = users.find((u) => u.isResetTokenValid(token));
 
     if (!user) {
       throw new BadRequestException('Invalid or expired reset token.');
@@ -97,8 +91,6 @@ export class PasswordResetService {
     // Separately update refresh token to null for security
     await this.userRepository.updateRefreshToken(user.id, null);
 
-
-
     return {
       message:
         'Password has been reset successfully. Please login with your new password.',
@@ -109,7 +101,7 @@ export class PasswordResetService {
     token: string,
   ): Promise<{ valid: boolean; email?: string }> {
     const users = await this.userRepository.findUsersWithResetToken();
-    const user = users.find(u => u.isResetTokenValid(token));
+    const user = users.find((u) => u.isResetTokenValid(token));
 
     if (!user) {
       return { valid: false };

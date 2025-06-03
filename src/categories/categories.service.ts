@@ -1,11 +1,19 @@
-import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not } from 'typeorm';
 import { CategoryEntity } from './entities/category.entity';
 import { ProjectEntity } from '../projects/entities/project.entity';
 import { PostEntity } from '../posts/entities/post.entity';
 import { UserProjectsService } from '../user-projects/user-projects.service';
-import { CreateCategoryDto, CreateCategoryWithProjectDto } from './dto/create-category.dto';
+import {
+  CreateCategoryDto,
+  CreateCategoryWithProjectDto,
+} from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Category } from './interfaces/category.interface';
 
@@ -47,8 +55,12 @@ export class CategoriesService {
   }
 
   // Generate unique slug (unique within project)
-  private async generateUniqueSlug(name: string, projectId: string, excludeId?: string): Promise<string> {
-    let baseSlug = this.generateSlug(name);
+  private async generateUniqueSlug(
+    name: string,
+    projectId: string,
+    excludeId?: string,
+  ): Promise<string> {
+    const baseSlug = this.generateSlug(name);
     let slug = baseSlug;
     let counter = 1;
 
@@ -57,7 +69,7 @@ export class CategoriesService {
         project: { id: projectId },
         slug: slug,
       };
-      
+
       if (excludeId) {
         whereConditions.id = Not(excludeId);
       }
@@ -65,46 +77,63 @@ export class CategoriesService {
       const existingCategory = await this.categoryRepository.findOne({
         where: whereConditions,
       });
-      
+
       if (!existingCategory) {
         return slug;
       }
-      
+
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
   }
 
-  async create(createCategoryDto: CreateCategoryWithProjectDto, userId: string): Promise<Category> {
+  async create(
+    createCategoryDto: CreateCategoryWithProjectDto,
+    userId: string,
+  ): Promise<Category> {
     // Check if project exists
     const project = await this.projectRepository.findOne({
-      where: { id: createCategoryDto.projectId }
+      where: { id: createCategoryDto.projectId },
     });
     if (!project) {
-      throw new NotFoundException(`Project with ID "${createCategoryDto.projectId}" not found`);
+      throw new NotFoundException(
+        `Project with ID "${createCategoryDto.projectId}" not found`,
+      );
     }
 
     // Check if user has access to project
-    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, project.name);
+    const hasAccess =
+      await this.userProjectsService.checkUserHasAccessToProject(
+        userId,
+        project.name,
+      );
     if (!hasAccess) {
-      throw new ForbiddenException(`You don't have access to project "${project.name}"`);
+      throw new ForbiddenException(
+        `You don't have access to project "${project.name}"`,
+      );
     }
 
     // Check if category name already exists in project
     const existingCategory = await this.categoryRepository.findOne({
       where: {
         name: createCategoryDto.name,
-        project: { id: createCategoryDto.projectId }
-      }
+        project: { id: createCategoryDto.projectId },
+      },
     });
 
     if (existingCategory) {
-      throw new ConflictException(`Category "${createCategoryDto.name}" already exists in this project`);
+      throw new ConflictException(
+        `Category "${createCategoryDto.name}" already exists in this project`,
+      );
     }
 
     // Generate unique slug if not provided (if not provided, generate unique slug)
-    const slug = createCategoryDto.slug || 
-      await this.generateUniqueSlug(createCategoryDto.name, createCategoryDto.projectId);
+    const slug =
+      createCategoryDto.slug ||
+      (await this.generateUniqueSlug(
+        createCategoryDto.name,
+        createCategoryDto.projectId,
+      ));
 
     // Create category
     const category = this.categoryRepository.create({
@@ -129,15 +158,24 @@ export class CategoriesService {
     return this.mapEntityToInterface(categoryWithProject);
   }
 
-  async findAllByProject(projectName: string, userId: string): Promise<Category[]> {
+  async findAllByProject(
+    projectName: string,
+    userId: string,
+  ): Promise<Category[]> {
     // First verify project exists
-    const project = await this.projectRepository.findOne({ where: { name: projectName } });
+    const project = await this.projectRepository.findOne({
+      where: { name: projectName },
+    });
     if (!project) {
       throw new NotFoundException(`Project "${projectName}" not found`);
     }
 
     // Check if user has access to project
-    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, projectName);
+    const hasAccess =
+      await this.userProjectsService.checkUserHasAccessToProject(
+        userId,
+        projectName,
+      );
     if (!hasAccess) {
       throw new ForbiddenException(`You don't have access to this project`);
     }
@@ -148,7 +186,7 @@ export class CategoriesService {
       order: { name: 'ASC' },
     });
 
-    return categories.map(category => this.mapEntityToInterface(category));
+    return categories.map((category) => this.mapEntityToInterface(category));
   }
 
   async findOne(id: string, userId: string): Promise<Category> {
@@ -162,7 +200,11 @@ export class CategoriesService {
     }
 
     // Check if user has access to project
-    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, category.project.name);
+    const hasAccess =
+      await this.userProjectsService.checkUserHasAccessToProject(
+        userId,
+        category.project.name,
+      );
     if (!hasAccess) {
       throw new ForbiddenException(`You don't have access to this project`);
     }
@@ -170,7 +212,12 @@ export class CategoriesService {
     return this.mapEntityToInterface(category);
   }
 
-  async update(id: string, updateCategoryDto: UpdateCategoryDto, userId: string, userRole: string): Promise<Category> {
+  async update(
+    id: string,
+    updateCategoryDto: UpdateCategoryDto,
+    userId: string,
+    userRole: string,
+  ): Promise<Category> {
     const category = await this.categoryRepository.findOne({
       where: { id },
       relations: ['project'],
@@ -181,39 +228,53 @@ export class CategoriesService {
     }
 
     // Check if user has access to project
-    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, category.project.name);
+    const hasAccess =
+      await this.userProjectsService.checkUserHasAccessToProject(
+        userId,
+        category.project.name,
+      );
     if (!hasAccess) {
       throw new ForbiddenException(`You don't have access to this project`);
     }
 
     // If changing project, check access to new project (only SUPER_ADMIN can move categories between projects)
-    if (updateCategoryDto.projectId && updateCategoryDto.projectId !== category.project.id) {
+    if (
+      updateCategoryDto.projectId &&
+      updateCategoryDto.projectId !== category.project.id
+    ) {
       if (userRole !== 'SUPER_ADMIN') {
-        throw new ForbiddenException('Only SUPER_ADMIN can move categories between projects');
+        throw new ForbiddenException(
+          'Only SUPER_ADMIN can move categories between projects',
+        );
       }
 
       const newProject = await this.projectRepository.findOne({
-        where: { id: updateCategoryDto.projectId }
+        where: { id: updateCategoryDto.projectId },
       });
       if (!newProject) {
-        throw new NotFoundException(`Project with ID "${updateCategoryDto.projectId}" not found`);
+        throw new NotFoundException(
+          `Project with ID "${updateCategoryDto.projectId}" not found`,
+        );
       }
       category.project = newProject;
     }
 
     // Check for name conflicts in the target project
     if (updateCategoryDto.name && updateCategoryDto.name !== category.name) {
-      const targetProjectId = updateCategoryDto.projectId || category.project.id;
+      const targetProjectId =
+        updateCategoryDto.projectId || category.project.id;
       const existingCategory = await this.categoryRepository.findOne({
         where: {
           name: updateCategoryDto.name,
           project: { id: targetProjectId },
           id: Not(id),
-        }
+        },
       });
 
       if (existingCategory) {
-        throw new ConflictException(`Category "${updateCategoryDto.name}" already exists in this project`);
+        throw new ConflictException(
+          `Category "${updateCategoryDto.name}" already exists in this project`,
+        );
       }
     }
 
@@ -240,7 +301,11 @@ export class CategoriesService {
     }
 
     // Check if user has access to this project
-    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, category.project.name);
+    const hasAccess =
+      await this.userProjectsService.checkUserHasAccessToProject(
+        userId,
+        category.project.name,
+      );
     if (!hasAccess) {
       throw new ForbiddenException(`You don't have access to this project`);
     }
@@ -249,11 +314,15 @@ export class CategoriesService {
     const postCount = await this.postRepository
       .createQueryBuilder('post')
       .where('post.project_id = :projectId', { projectId: category.project.id })
-      .andWhere(':categoryName = ANY(post.categories)', { categoryName: category.name })
+      .andWhere(':categoryName = ANY(post.categories)', {
+        categoryName: category.name,
+      })
       .getCount();
 
     if (postCount > 0) {
-      throw new ConflictException(`Cannot delete category "${category.name}" because it is being used by ${postCount} post(s)`);
+      throw new ConflictException(
+        `Cannot delete category "${category.name}" because it is being used by ${postCount} post(s)`,
+      );
     }
 
     await this.categoryRepository.remove(category);
@@ -267,20 +336,20 @@ export class CategoriesService {
       order: { name: 'ASC' },
     });
 
-    return categories.map(category => this.mapEntityToInterface(category));
+    return categories.map((category) => this.mapEntityToInterface(category));
   }
 
   // Public method for getting categories by project ID (public endpoint)
   async findAllByProjectPublic(projectId: string): Promise<Category[]> {
     const categories = await this.categoryRepository.find({
-      where: { 
+      where: {
         project: { id: projectId },
-        is_active: true // Only show active categories for public access
+        is_active: true, // Only show active categories for public access
       },
       relations: ['project'],
       order: { name: 'ASC' },
     });
 
-    return categories.map(category => this.mapEntityToInterface(category));
+    return categories.map((category) => this.mapEntityToInterface(category));
   }
-} 
+}

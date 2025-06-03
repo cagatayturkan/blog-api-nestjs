@@ -24,7 +24,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(req: Request, payload: any) {
     // Extract the token from the request
     const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
-    
+
     if (!token) {
       throw new UnauthorizedException('Token not found');
     }
@@ -35,7 +35,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     // Validate session and refresh its TTL
-    const sessionResult = await this.sessionService.validateAndRefreshSession(payload.sessionId);
+    const sessionResult = await this.sessionService.validateAndRefreshSession(
+      payload.sessionId,
+    );
     if (!sessionResult.valid) {
       throw new UnauthorizedException('Session has expired or is invalid');
     }
@@ -45,14 +47,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
-    
+
     // The value returned here will be available as 'req.user'
-    return { 
-      id: user.id, 
+    return {
+      id: user.id,
       email: user.email,
       role: user.role,
       sessionId: payload.sessionId,
-      token: token // Store token for potential future use
+      token: token, // Store token for potential future use
     };
   }
-} 
+}

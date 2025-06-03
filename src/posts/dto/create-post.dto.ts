@@ -16,17 +16,18 @@ import { ApiProperty } from '@nestjs/swagger';
 export class CreatePostDto {
   @ApiProperty({
     description: 'Title of the blog post',
-    example: 'Complete Guide to Blog Development'
+    example: 'Complete Guide to Blog Development',
   })
   @IsString()
   @IsNotEmpty()
   title: string;
 
   @ApiProperty({
-    description: 'Project ID to associate with the post (optional, will be set by middleware)',
+    description:
+      'Project ID to associate with the post (optional, will be set by middleware)',
     example: '123e4567-e89b-12d3-a456-426614174000',
     format: 'uuid',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsUUID()
@@ -35,7 +36,7 @@ export class CreatePostDto {
   @ApiProperty({
     description: 'URL slug for the post (auto-generated if not provided)',
     example: 'complete-guide-blog-development',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -48,14 +49,15 @@ export class CreatePostDto {
       {
         order: 0,
         title: 'Introduction',
-        content: 'This is the introduction to our blog post about blog development.'
+        content:
+          'This is the introduction to our blog post about blog development.',
       },
       {
         order: 1,
         title: 'Getting Started',
-        content: 'First, let\'s set up our development environment...'
-      }
-    ]
+        content: "First, let's set up our development environment...",
+      },
+    ],
   })
   @IsArray()
   @ValidateNested({ each: true })
@@ -65,7 +67,7 @@ export class CreatePostDto {
   @ApiProperty({
     description: 'Array of category names',
     type: [String],
-    example: ['Technology', 'Web Development', 'JavaScript']
+    example: ['Technology', 'Web Development', 'JavaScript'],
   })
   @IsArray()
   @IsString({ each: true })
@@ -75,7 +77,7 @@ export class CreatePostDto {
   @ApiProperty({
     description: 'Array of author names',
     type: [String],
-    example: ['John Doe', 'Jane Smith']
+    example: ['John Doe', 'Jane Smith'],
   })
   @IsArray()
   @IsString({ each: true })
@@ -88,8 +90,9 @@ export class CreatePostDto {
     required: false,
     example: {
       title: 'Complete Guide to Blog Development | Tech Blog',
-      description: 'Learn how to build a modern blog with NestJS, TypeORM and PostgreSQL.'
-    }
+      description:
+        'Learn how to build a modern blog with NestJS, TypeORM and PostgreSQL.',
+    },
   })
   @IsOptional()
   @ValidateNested()
@@ -100,7 +103,7 @@ export class CreatePostDto {
     description: 'URL of the featured image',
     example: 'https://example.com/images/featured-image.jpg',
     format: 'url',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsUrl()
@@ -109,7 +112,7 @@ export class CreatePostDto {
   @ApiProperty({
     description: 'Language code for the post',
     example: 'tr',
-    enum: ['tr', 'en']
+    enum: ['tr', 'en'],
   })
   @IsString()
   @IsNotEmpty()
@@ -119,7 +122,7 @@ export class CreatePostDto {
     description: 'Whether the post is published or draft',
     example: true,
     default: false,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsBoolean()
@@ -127,4 +130,4 @@ export class CreatePostDto {
 
   // userId is typically handled by the authentication system, not passed in DTO
   // createdAt and updatedAt are handled by the service/database
-} 
+}

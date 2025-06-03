@@ -1,6 +1,6 @@
 // IMPORTANT: Make sure to import `instrument.ts` at the top of your file.
 // If you're using CommonJS (CJS) syntax, use `require("./instrument.ts");`
-import "./instrument";
+import './instrument';
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -44,7 +44,8 @@ async function bootstrap() {
   // Swagger configuration
   const config = new DocumentBuilder()
     .setTitle('Blog REST API')
-    .setDescription(`
+    .setDescription(
+      `
       Comprehensive REST API for Blog with JWT Session Management
       
       ## Features
@@ -60,7 +61,8 @@ async function bootstrap() {
       - Rate limiting and security measures
       - Swagger documentation
       - Postman collection included
-    `)
+    `,
+    )
     .setVersion('1.0')
     .addBearerAuth(
       {
@@ -107,6 +109,8 @@ async function bootstrap() {
   const port = configService.get<number>('PORT', 3000);
   await app.listen(port);
   console.log(`Application is running on: ${await app.getUrl()}`);
-  console.log(`Swagger documentation available at: ${await app.getUrl()}/api/docs`);
+  console.log(
+    `Swagger documentation available at: ${await app.getUrl()}/api/docs`,
+  );
 }
 bootstrap();

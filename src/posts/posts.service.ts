@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindManyOptions, Like, Not } from 'typeorm';
 import { PostEntity } from './entities/post.entity';
@@ -47,16 +52,18 @@ export class PostsService {
   }
 
   // DTO'dan Entity'ye dönüşüm (Veritabanına yazmak için)
-  private async mapCreateDtoToEntity(dto: CreatePostDto): Promise<Partial<PostEntity>> {
+  private async mapCreateDtoToEntity(
+    dto: CreatePostDto,
+  ): Promise<Partial<PostEntity>> {
     if (!dto.projectId) {
       throw new Error('Project ID is required');
     }
-    
+
     // Validate categories exist in the database for this project
     if (dto.categories && dto.categories.length > 0) {
       await this.validateCategories(dto.categories, dto.projectId);
     }
-    
+
     const entity = new PostEntity();
     entity.title = dto.title;
     entity.slug = dto.slug || this.generateSlug(dto.title);
@@ -64,7 +71,9 @@ export class PostsService {
     entity.content_blocks = dto.contentBlocks;
     entity.categories = dto.categories;
     entity.authors = dto.authors;
-    entity.seo_data = dto.seo ? { title: dto.seo.title, description: dto.seo.description } : null;
+    entity.seo_data = dto.seo
+      ? { title: dto.seo.title, description: dto.seo.description }
+      : null;
     entity.featured_image_url = dto.featuredImage || null;
     entity.language = dto.language;
     entity.is_published = dto.isPublished ?? false;
@@ -72,21 +81,26 @@ export class PostsService {
   }
 
   // Validate that all categories exist in the database for the given project
-  private async validateCategories(categoryNames: string[], projectId: string): Promise<void> {
+  private async validateCategories(
+    categoryNames: string[],
+    projectId: string,
+  ): Promise<void> {
     const existingCategories = await this.categoriesRepository.find({
-      where: { 
+      where: {
         project_id: projectId,
-        is_active: true 
-      }
+        is_active: true,
+      },
     });
-    
-    const existingCategoryNames = existingCategories.map(cat => cat.name);
-    const invalidCategories = categoryNames.filter(name => !existingCategoryNames.includes(name));
-    
+
+    const existingCategoryNames = existingCategories.map((cat) => cat.name);
+    const invalidCategories = categoryNames.filter(
+      (name) => !existingCategoryNames.includes(name),
+    );
+
     if (invalidCategories.length > 0) {
       throw new BadRequestException(
         `The following categories do not exist in this project: ${invalidCategories.join(', ')}. ` +
-        `Available categories: ${existingCategoryNames.join(', ')}`
+          `Available categories: ${existingCategoryNames.join(', ')}`,
       );
     }
   }
@@ -103,8 +117,12 @@ export class PostsService {
   }
 
   // Unique slug oluşturma (project içinde benzersiz olması için)
-  private async generateUniqueSlug(title: string, projectId: string, excludeId?: string): Promise<string> {
-    let baseSlug = this.generateSlug(title);
+  private async generateUniqueSlug(
+    title: string,
+    projectId: string,
+    excludeId?: string,
+  ): Promise<string> {
+    const baseSlug = this.generateSlug(title);
     let slug = baseSlug;
     let counter = 1;
 
@@ -113,60 +131,79 @@ export class PostsService {
         project_id: projectId,
         slug: slug,
       };
-      
+
       if (excludeId) {
         whereConditions.id = Not(excludeId);
       }
 
-      const existingPost = await this.postsRepository.findOneBy(whereConditions);
-      
+      const existingPost =
+        await this.postsRepository.findOneBy(whereConditions);
+
       if (!existingPost) {
         return slug;
       }
-      
+
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
   }
 
-  async create(createPostDto: CreatePostDto, userId: string): Promise<PostInterface> {
+  async create(
+    createPostDto: CreatePostDto,
+    userId: string,
+  ): Promise<PostInterface> {
     if (!createPostDto.projectId) {
       throw new Error('Project ID is required');
     }
-    
+
     // Verify project exists
-    const project = await this.projectsRepository.findOneBy({ id: createPostDto.projectId });
+    const project = await this.projectsRepository.findOneBy({
+      id: createPostDto.projectId,
+    });
     if (!project) {
-      throw new NotFoundException(`Project with ID "${createPostDto.projectId}" not found`);
+      throw new NotFoundException(
+        `Project with ID "${createPostDto.projectId}" not found`,
+      );
     }
 
     // Check if user has access to this project
-    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, project.name);
+    const hasAccess =
+      await this.userProjectsService.checkUserHasAccessToProject(
+        userId,
+        project.name,
+      );
     if (!hasAccess) {
-      throw new ForbiddenException(`You don't have access to project "${project.name}"`);
+      throw new ForbiddenException(
+        `You don't have access to project "${project.name}"`,
+      );
     }
 
     const partialEntity = await this.mapCreateDtoToEntity(createPostDto);
     partialEntity.user_id = userId;
-    
+
     // Generate unique slug if not provided
     if (!createPostDto.slug) {
-      partialEntity.slug = await this.generateUniqueSlug(createPostDto.title, createPostDto.projectId);
+      partialEntity.slug = await this.generateUniqueSlug(
+        createPostDto.title,
+        createPostDto.projectId,
+      );
     }
-    
-    const newPostEntity = this.postsRepository.create(partialEntity as PostEntity);
+
+    const newPostEntity = this.postsRepository.create(
+      partialEntity as PostEntity,
+    );
     await this.postsRepository.save(newPostEntity);
-    
+
     // Load relations for response
     const savedEntity = await this.postsRepository.findOne({
       where: { id: newPostEntity.id },
       relations: ['project', 'user'],
     });
-    
+
     if (!savedEntity) {
       throw new NotFoundException('Failed to load created post');
     }
-    
+
     return this.mapEntityToInterface(savedEntity);
   }
 
@@ -185,10 +222,12 @@ export class PostsService {
     const skip = (page - 1) * limit;
 
     const whereConditions: any = {};
-    
+
     // Convert projectIdentifier (name) to projectId if provided
     if (projectIdentifier) {
-      const project = await this.projectsRepository.findOneBy({ name: projectIdentifier });
+      const project = await this.projectsRepository.findOneBy({
+        name: projectIdentifier,
+      });
       if (project) {
         whereConditions.project_id = project.id;
       } else {
@@ -204,7 +243,7 @@ export class PostsService {
         };
       }
     }
-    
+
     if (lang) whereConditions.language = lang;
     if (onlyPublished) whereConditions.is_published = true;
     if (searchTerm) {
@@ -229,10 +268,11 @@ export class PostsService {
     // Category filtering would need a more complex query with QueryBuilder
     // For now, we'll handle it in the basic where conditions if needed
 
-    const [entities, totalItems] = await this.postsRepository.findAndCount(findOptions);
-    
+    const [entities, totalItems] =
+      await this.postsRepository.findAndCount(findOptions);
+
     const totalPages = Math.ceil(totalItems / limit);
-    const data = entities.map(entity => this.mapEntityToInterface(entity));
+    const data = entities.map((entity) => this.mapEntityToInterface(entity));
 
     return {
       data,
@@ -245,17 +285,20 @@ export class PostsService {
     };
   }
 
-  async findOneById(id: string, includeUnpublished = false): Promise<PostInterface> {
+  async findOneById(
+    id: string,
+    includeUnpublished = false,
+  ): Promise<PostInterface> {
     const whereConditions: any = { id };
     if (!includeUnpublished) {
       whereConditions.is_published = true;
     }
-    
+
     const entity = await this.postsRepository.findOne({
       where: whereConditions,
       relations: ['project', 'user'],
     });
-    
+
     if (!entity) {
       throw new NotFoundException(`Post with ID "${id}" not found`);
     }
@@ -268,11 +311,13 @@ export class PostsService {
     includeUnpublished = false,
   ): Promise<PostInterface> {
     // Convert projectIdentifier (name) to projectId
-    const project = await this.projectsRepository.findOneBy({ name: projectIdentifier });
+    const project = await this.projectsRepository.findOneBy({
+      name: projectIdentifier,
+    });
     if (!project) {
       throw new NotFoundException(`Project "${projectIdentifier}" not found`);
     }
-    
+
     const whereConditions: any = {
       project_id: project.id,
       slug: slug,
@@ -280,12 +325,12 @@ export class PostsService {
     if (!includeUnpublished) {
       whereConditions.is_published = true;
     }
-    
+
     const entity = await this.postsRepository.findOne({
       where: whereConditions,
       relations: ['project', 'user'],
     });
-    
+
     if (!entity) {
       throw new NotFoundException(
         `Post with slug "${slug}" in project "${projectIdentifier}" not found`,
@@ -304,25 +349,35 @@ export class PostsService {
       where: { id },
       relations: ['project', 'user'],
     });
-    
+
     if (!existingEntityToUpdate) {
       throw new NotFoundException(`Post with ID "${id}" not found for update`);
     }
 
     // Check if user has access to this project
-    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, existingEntityToUpdate.project.name);
+    const hasAccess =
+      await this.userProjectsService.checkUserHasAccessToProject(
+        userId,
+        existingEntityToUpdate.project.name,
+      );
     if (!hasAccess) {
       throw new ForbiddenException(`You don't have access to this project`);
     }
 
     // Check ownership: Only SUPER_ADMIN or the post owner can update
-    if (userRole !== 'SUPER_ADMIN' && existingEntityToUpdate.user_id !== userId) {
+    if (
+      userRole !== 'SUPER_ADMIN' &&
+      existingEntityToUpdate.user_id !== userId
+    ) {
       throw new ForbiddenException('You can only update your own posts');
     }
 
-    const changes = await this.mapUpdateDtoToEntityChanges(updatePostDto, existingEntityToUpdate.project_id);
+    const changes = await this.mapUpdateDtoToEntityChanges(
+      updatePostDto,
+      existingEntityToUpdate.project_id,
+    );
     Object.assign(existingEntityToUpdate, changes);
-    
+
     // Generate unique slug if title changed and no slug provided
     if (updatePostDto.title && !updatePostDto.slug) {
       existingEntityToUpdate.slug = await this.generateUniqueSlug(
@@ -333,36 +388,43 @@ export class PostsService {
     }
 
     await this.postsRepository.save(existingEntityToUpdate);
-    
+
     // Reload with relations
     const updatedEntity = await this.postsRepository.findOne({
       where: { id },
       relations: ['project', 'user'],
     });
-    
+
     if (!updatedEntity) {
       throw new NotFoundException('Failed to load updated post');
     }
-    
+
     return this.mapEntityToInterface(updatedEntity);
   }
 
-  private async mapUpdateDtoToEntityChanges(dto: UpdatePostDto, projectId: string): Promise<Partial<PostEntity>> {
+  private async mapUpdateDtoToEntityChanges(
+    dto: UpdatePostDto,
+    projectId: string,
+  ): Promise<Partial<PostEntity>> {
     const changes: Partial<PostEntity> = {};
-    
+
     if (dto.title !== undefined) changes.title = dto.title;
     if (dto.slug !== undefined) changes.slug = dto.slug;
     if (dto.projectId !== undefined) changes.project_id = dto.projectId;
-    if (dto.contentBlocks !== undefined) changes.content_blocks = dto.contentBlocks;
+    if (dto.contentBlocks !== undefined)
+      changes.content_blocks = dto.contentBlocks;
     if (dto.authors !== undefined) changes.authors = dto.authors;
     if (dto.language !== undefined) changes.language = dto.language;
     if (dto.isPublished !== undefined) changes.is_published = dto.isPublished;
-    if (dto.featuredImage !== undefined) changes.featured_image_url = dto.featuredImage;
-    
+    if (dto.featuredImage !== undefined)
+      changes.featured_image_url = dto.featuredImage;
+
     if (dto.seo !== undefined) {
-      changes.seo_data = dto.seo ? { title: dto.seo.title, description: dto.seo.description } : null;
+      changes.seo_data = dto.seo
+        ? { title: dto.seo.title, description: dto.seo.description }
+        : null;
     }
-    
+
     // Handle categories with validation
     if (dto.categories !== undefined) {
       if (dto.categories && dto.categories.length > 0) {
@@ -370,7 +432,7 @@ export class PostsService {
       }
       changes.categories = dto.categories;
     }
-    
+
     return changes;
   }
 
@@ -380,11 +442,17 @@ export class PostsService {
       relations: ['project'],
     });
     if (!existingEntity) {
-      throw new NotFoundException(`Post with ID "${id}" not found for deletion`);
+      throw new NotFoundException(
+        `Post with ID "${id}" not found for deletion`,
+      );
     }
 
     // Check if user has access to this project
-    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, existingEntity.project.name);
+    const hasAccess =
+      await this.userProjectsService.checkUserHasAccessToProject(
+        userId,
+        existingEntity.project.name,
+      );
     if (!hasAccess) {
       throw new ForbiddenException(`You don't have access to this project`);
     }

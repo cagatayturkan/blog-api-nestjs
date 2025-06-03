@@ -94,9 +94,10 @@ export class UserEntity {
       return false;
     }
     // Convert string to Date object if needed (JSONB stores dates as strings)
-    const expiresAt = typeof this.reset.expiresAt === 'string' 
-      ? new Date(this.reset.expiresAt) 
-      : this.reset.expiresAt;
+    const expiresAt =
+      typeof this.reset.expiresAt === 'string'
+        ? new Date(this.reset.expiresAt)
+        : this.reset.expiresAt;
     return new Date() < expiresAt;
   }
 
@@ -105,13 +106,14 @@ export class UserEntity {
     // Allow new request after 5 minutes
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
     // Convert string to Date object if needed (JSONB stores dates as strings)
-    const createdAt = typeof this.reset.createdAt === 'string' 
-      ? new Date(this.reset.createdAt) 
-      : this.reset.createdAt;
+    const createdAt =
+      typeof this.reset.createdAt === 'string'
+        ? new Date(this.reset.createdAt)
+        : this.reset.createdAt;
     return createdAt < fiveMinutesAgo;
   }
 
   clearReset(): void {
     this.reset = null;
   }
-} 
+}

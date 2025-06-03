@@ -1,13 +1,24 @@
-import { CallHandler, ExecutionContext, HttpStatus, Injectable, NestInterceptor } from '@nestjs/common';
+import {
+  CallHandler,
+  ExecutionContext,
+  HttpStatus,
+  Injectable,
+  NestInterceptor,
+} from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { GenericResponse } from '../interfaces/generic-response.interface';
 
 @Injectable()
-export class ResponseInterceptor<T> implements NestInterceptor<T, GenericResponse<T>> {
-  intercept(context: ExecutionContext, next: CallHandler): Observable<GenericResponse<T>> {
+export class ResponseInterceptor<T>
+  implements NestInterceptor<T, GenericResponse<T>>
+{
+  intercept(
+    context: ExecutionContext,
+    next: CallHandler,
+  ): Observable<GenericResponse<T>> {
     return next.handle().pipe(
-      map(handlerData => {
+      map((handlerData) => {
         const httpResponse = context.switchToHttp().getResponse();
         const statusCode = httpResponse.statusCode;
 
@@ -29,8 +40,8 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, GenericRespons
         ) {
           return {
             status: 'SUCCESS',
-            data: (handlerData as any).data, // The actual array of items
-            pagination: (handlerData as any).pagination,
+            data: handlerData.data, // The actual array of items
+            pagination: handlerData.pagination,
           } as GenericResponse<T>;
         }
 
@@ -42,4 +53,4 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, GenericRespons
       }),
     );
   }
-} 
+}

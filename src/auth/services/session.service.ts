@@ -14,7 +14,10 @@ export class SessionService {
     private configService: ConfigService,
   ) {
     // Get TTL from environment variable, default to 60 seconds
-    const sessionTtlSeconds = this.configService.get<number>('SESSION_TTL_SECONDS', 60);
+    const sessionTtlSeconds = this.configService.get<number>(
+      'SESSION_TTL_SECONDS',
+      60,
+    );
     this.sessionTtlMs = sessionTtlSeconds * 1000; // Convert to milliseconds
   }
 
@@ -24,7 +27,7 @@ export class SessionService {
   async createSession(userId: string): Promise<string> {
     const sessionId = uuidv4();
     const sessionKey = `${this.SESSION_PREFIX}${sessionId}`;
-    
+
     const sessionData = {
       userId,
       createdAt: new Date(),
@@ -33,18 +36,20 @@ export class SessionService {
 
     // Store session data
     await this.cacheManager.set(sessionKey, sessionData, this.sessionTtlMs);
-    
+
     return sessionId;
   }
 
   /**
    * Check if session exists and update last activity
    */
-  async validateAndRefreshSession(sessionId: string): Promise<{ valid: boolean; userId?: string }> {
+  async validateAndRefreshSession(
+    sessionId: string,
+  ): Promise<{ valid: boolean; userId?: string }> {
     const sessionKey = `${this.SESSION_PREFIX}${sessionId}`;
-    
+
     const sessionData = await this.cacheManager.get<any>(sessionKey);
-    
+
     if (!sessionData) {
       return { valid: false };
     }
@@ -55,11 +60,15 @@ export class SessionService {
       lastActivity: new Date(),
     };
 
-    await this.cacheManager.set(sessionKey, updatedSessionData, this.sessionTtlMs);
-    
-    return { 
-      valid: true, 
-      userId: sessionData.userId 
+    await this.cacheManager.set(
+      sessionKey,
+      updatedSessionData,
+      this.sessionTtlMs,
+    );
+
+    return {
+      valid: true,
+      userId: sessionData.userId,
     };
   }
 
@@ -85,4 +94,4 @@ export class SessionService {
   getSessionTtlMs(): number {
     return this.sessionTtlMs;
   }
-} 
+}

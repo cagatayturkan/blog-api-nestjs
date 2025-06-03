@@ -5,7 +5,7 @@ export class CreateCategoryDto {
   @ApiProperty({
     description: 'Category name',
     example: 'Technology',
-    minLength: 1
+    minLength: 1,
   })
   @IsString()
   @IsNotEmpty()
@@ -14,7 +14,7 @@ export class CreateCategoryDto {
   @ApiProperty({
     description: 'Category URL slug (auto-generated if not provided)',
     example: 'technology',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -23,7 +23,7 @@ export class CreateCategoryDto {
   @ApiProperty({
     description: 'Category description',
     example: 'Articles about technology and innovation',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -35,9 +35,9 @@ export class CreateCategoryWithProjectDto extends CreateCategoryDto {
   @ApiProperty({
     description: 'Project ID to associate with category',
     example: '123e4567-e89b-12d3-a456-426614174000',
-    format: 'uuid'
+    format: 'uuid',
   })
   @IsUUID()
   @IsNotEmpty()
   projectId: string; // Required for service
-} 
+}

@@ -16,7 +16,7 @@ export class AdminSeeder {
 
     // Check if any SUPER_ADMIN exists
     const existingAdmin = await this.userRepository.findByEmail(adminEmail);
-    
+
     if (!existingAdmin) {
       // Create default admin user using environment variables
       const adminData = {
@@ -27,22 +27,24 @@ export class AdminSeeder {
       };
 
       const adminUser = await this.userRepository.create(adminData);
-      
+
       // Update the role to SUPER_ADMIN after creation
-      await this.userRepository.update(adminUser.id, { 
+      await this.userRepository.update(adminUser.id, {
         role: UserRole.SUPER_ADMIN,
-        is_email_verified: true 
+        is_email_verified: true,
       });
-      
+
       console.log(`✅ Default SUPER_ADMIN user created: ${adminEmail}`);
     } else {
       // Update existing user to SUPER_ADMIN if not already
       if (existingAdmin.role !== UserRole.SUPER_ADMIN) {
-        await this.userRepository.update(existingAdmin.id, { role: UserRole.SUPER_ADMIN });
+        await this.userRepository.update(existingAdmin.id, {
+          role: UserRole.SUPER_ADMIN,
+        });
         console.log(`✅ Updated existing user to SUPER_ADMIN: ${adminEmail}`);
       } else {
         console.log(`ℹ️  SUPER_ADMIN user already exists: ${adminEmail}`);
       }
     }
   }
-} 
+}

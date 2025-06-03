@@ -11,18 +11,30 @@ export class MailService {
     if (apiKey) {
       sgMail.setApiKey(apiKey);
     } else {
-      this.logger.warn('SendGrid API key not configured. Email functionality will be disabled.');
+      this.logger.warn(
+        'SendGrid API key not configured. Email functionality will be disabled.',
+      );
     }
   }
 
-  async sendPasswordResetEmail(email: string, resetToken: string, firstName: string): Promise<void> {
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
+  async sendPasswordResetEmail(
+    email: string,
+    resetToken: string,
+    firstName: string,
+  ): Promise<void> {
+    const frontendUrl = this.configService.get<string>(
+      'FRONTEND_URL',
+      'http://localhost:3000',
+    );
     const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
-    
+
     const msg = {
       to: email,
       from: {
-        email: this.configService.get<string>('SENDGRID_FROM_EMAIL', 'noreply@yourdomain.com'),
+        email: this.configService.get<string>(
+          'SENDGRID_FROM_EMAIL',
+          'noreply@yourdomain.com',
+        ),
         name: this.configService.get<string>('SENDGRID_FROM_NAME', 'Blog API'),
       },
       subject: 'Password Reset Request - Blog',
@@ -48,7 +60,10 @@ export class MailService {
       await sgMail.send(msg);
       this.logger.log(`Password reset email sent to ${email}`);
     } catch (error) {
-      this.logger.error(`Failed to send password reset email to ${email}:`, error);
+      this.logger.error(
+        `Failed to send password reset email to ${email}:`,
+        error,
+      );
       throw new Error('Failed to send password reset email');
     }
   }
@@ -57,7 +72,10 @@ export class MailService {
     const msg = {
       to: email,
       from: {
-        email: this.configService.get<string>('SENDGRID_FROM_EMAIL', 'noreply@yourdomain.com'),
+        email: this.configService.get<string>(
+          'SENDGRID_FROM_EMAIL',
+          'noreply@yourdomain.com',
+        ),
         name: this.configService.get<string>('SENDGRID_FROM_NAME', 'Blog API'),
       },
       subject: 'Welcome to Blog!',
@@ -83,7 +101,11 @@ export class MailService {
     }
   }
 
-  private getPasswordResetTemplate(firstName: string, resetUrl: string, token: string): string {
+  private getPasswordResetTemplate(
+    firstName: string,
+    resetUrl: string,
+    token: string,
+  ): string {
     return `
       <!DOCTYPE html>
       <html>
@@ -185,4 +207,4 @@ export class MailService {
       </html>
     `;
   }
-} 
+}

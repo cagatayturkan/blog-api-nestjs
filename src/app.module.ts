@@ -51,12 +51,7 @@ import { SentryGlobalFilter } from '@sentry/nestjs/setup';
         username: configService.get('DB_USERNAME', 'cagatayturkann'),
         password: configService.get('DB_PASSWORD', 'mypassword'),
         database: configService.get('DB_DATABASE', 'nestjstest'),
-        entities: [
-          PostEntity,
-          UserEntity,
-          ProjectEntity,
-          CategoryEntity,
-        ],
+        entities: [PostEntity, UserEntity, ProjectEntity, CategoryEntity],
         synchronize: configService.get('NODE_ENV') === 'development',
       }),
     }),

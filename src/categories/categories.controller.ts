@@ -11,15 +11,18 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
-  Query,
-  UsePipes,
-  ValidationPipe,
-  ForbiddenException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery, ApiBody, ApiHeader } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiBody,
+  ApiHeader,
+} from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
-import { UserProjectsService } from '../user-projects/user-projects.service';
-import { CreateCategoryDto, CreateCategoryWithProjectDto } from './dto/create-category.dto';
+import { CreateCategoryWithProjectDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -39,10 +42,7 @@ interface RequestWithUserAndProject extends RequestWithProject {
 @ApiTags('Categories')
 @Controller('categories')
 export class CategoriesController {
-  constructor(
-    private readonly categoriesService: CategoriesService,
-    private readonly userProjectsService: UserProjectsService
-  ) {}
+  constructor(private readonly categoriesService: CategoriesService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new category' })
@@ -50,7 +50,7 @@ export class CategoriesController {
     name: 'projectname',
     description: 'Project name to create category in',
     required: true,
-    example: 'tech-blog'
+    example: 'tech-blog',
   })
   @ApiBody({
     description: 'Category creation data',
@@ -60,32 +60,35 @@ export class CategoriesController {
         name: {
           type: 'string',
           description: 'Category name',
-          example: 'Technology'
+          example: 'Technology',
         },
         slug: {
           type: 'string',
           description: 'Category URL slug (optional)',
-          example: 'technology'
+          example: 'technology',
         },
         description: {
           type: 'string',
           description: 'Category description (optional)',
-          example: 'Articles about technology and innovation'
-        }
+          example: 'Articles about technology and innovation',
+        },
       },
-      required: ['name']
-    }
+      required: ['name'],
+    },
   })
   @ApiResponse({ status: 201, description: 'Category created successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - insufficient permissions',
+  })
   @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.USER) // READ_ONLY cannot create categories
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() body: { name: string; slug?: string; description?: string },
-    @Req() req: RequestWithUserAndProject
+    @Req() req: RequestWithUserAndProject,
   ) {
     // Create internal DTO with project ID from middleware
     const createCategoryWithProject: CreateCategoryWithProjectDto = {
@@ -94,8 +97,11 @@ export class CategoriesController {
       description: body.description,
       projectId: req.project!.id,
     };
-    
-    return this.categoriesService.create(createCategoryWithProject, req.user.id);
+
+    return this.categoriesService.create(
+      createCategoryWithProject,
+      req.user.id,
+    );
   }
 
   @Get()
@@ -104,13 +110,14 @@ export class CategoriesController {
     name: 'projectname',
     description: 'Project name to get categories from',
     required: true,
-    example: 'tech-blog'
+    example: 'tech-blog',
   })
-  @ApiResponse({ status: 200, description: 'Categories retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Categories retrieved successfully',
+  })
   // Public endpoint - all users can see categories
-  async findAllByProject(
-    @Req() req: RequestWithProject,
-  ) {
+  async findAllByProject(@Req() req: RequestWithProject) {
     return this.categoriesService.findAllByProjectPublic(req.project!.id);
   }
 
@@ -119,7 +126,7 @@ export class CategoriesController {
   @ApiParam({
     name: 'id',
     description: 'Category ID',
-    example: '123e4567-e89b-12d3-a456-426614174000'
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiResponse({ status: 200, description: 'Category retrieved successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -128,7 +135,7 @@ export class CategoriesController {
   @UseGuards(JwtAuthGuard)
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
-    @Req() req: RequestWithUserAndProject
+    @Req() req: RequestWithUserAndProject,
   ) {
     return this.categoriesService.findOne(id, req.user.id);
   }
@@ -138,11 +145,14 @@ export class CategoriesController {
   @ApiParam({
     name: 'id',
     description: 'Category ID',
-    example: '123e4567-e89b-12d3-a456-426614174000'
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiResponse({ status: 200, description: 'Category updated successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - insufficient permissions',
+  })
   @ApiResponse({ status: 404, description: 'Category not found' })
   @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -150,9 +160,14 @@ export class CategoriesController {
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateCategoryDto: UpdateCategoryDto,
-    @Req() req: RequestWithUserAndProject
+    @Req() req: RequestWithUserAndProject,
   ) {
-    return this.categoriesService.update(id, updateCategoryDto, req.user.id, req.user.role);
+    return this.categoriesService.update(
+      id,
+      updateCategoryDto,
+      req.user.id,
+      req.user.role,
+    );
   }
 
   @Delete(':id')
@@ -160,11 +175,14 @@ export class CategoriesController {
   @ApiParam({
     name: 'id',
     description: 'Category ID',
-    example: '123e4567-e89b-12d3-a456-426614174000'
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiResponse({ status: 204, description: 'Category deleted successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - insufficient permissions',
+  })
   @ApiResponse({ status: 404, description: 'Category not found' })
   @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -172,8 +190,8 @@ export class CategoriesController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
-    @Req() req: RequestWithUserAndProject
+    @Req() req: RequestWithUserAndProject,
   ): Promise<void> {
     return this.categoriesService.remove(id, req.user.id, req.user.role);
   }
-} 
+}

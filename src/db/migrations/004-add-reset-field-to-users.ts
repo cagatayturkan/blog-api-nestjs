@@ -36,4 +36,4 @@ export class AddResetFieldToUsers1701234567891 implements MigrationInterface {
       )
     `);
   }
-} 
+}

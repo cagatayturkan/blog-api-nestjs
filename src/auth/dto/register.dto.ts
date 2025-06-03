@@ -5,7 +5,7 @@ export class RegisterDto {
   @ApiProperty({
     description: 'User email address',
     example: 'testuser@example.com',
-    format: 'email'
+    format: 'email',
   })
   @IsEmail()
   @IsNotEmpty()
@@ -14,7 +14,7 @@ export class RegisterDto {
   @ApiProperty({
     description: 'User first name',
     example: 'John',
-    minLength: 1
+    minLength: 1,
   })
   @IsString()
   @IsNotEmpty()
@@ -23,7 +23,7 @@ export class RegisterDto {
   @ApiProperty({
     description: 'User last name',
     example: 'Doe',
-    minLength: 1
+    minLength: 1,
   })
   @IsString()
   @IsNotEmpty()
@@ -32,10 +32,10 @@ export class RegisterDto {
   @ApiProperty({
     description: 'User password (minimum 8 characters)',
     example: 'password123',
-    minLength: 8
+    minLength: 8,
   })
   @IsString()
   @IsNotEmpty()
   @MinLength(8, { message: 'Password must be at least 8 characters long' })
   password: string;
-} 
+}

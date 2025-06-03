@@ -7,4 +7,4 @@ export interface Category {
   projectName?: string;
   createdAt: Date;
   updatedAt: Date;
-} 
+}

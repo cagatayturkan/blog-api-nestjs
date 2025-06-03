@@ -41,4 +41,4 @@ export class CategoryEntity {
 
   @UpdateDateColumn()
   updated_at: Date;
-} 
+}

@@ -55,11 +55,14 @@ export class UserRepository {
 
   async findAll(): Promise<UserEntity[]> {
     return this.userRepository.find({
-      order: { created_at: 'DESC' }
+      order: { created_at: 'DESC' },
     });
   }
 
-  async update(id: string, updateData: Partial<UserEntity>): Promise<UserEntity | null> {
+  async update(
+    id: string,
+    updateData: Partial<UserEntity>,
+  ): Promise<UserEntity | null> {
     await this.userRepository.update(id, updateData);
     return this.findById(id);
   }
@@ -69,17 +72,25 @@ export class UserRepository {
   }
 
   async findByRefreshToken(refreshToken: string): Promise<UserEntity | null> {
-    return this.userRepository.findOne({ where: { refresh_token: refreshToken } });
+    return this.userRepository.findOne({
+      where: { refresh_token: refreshToken },
+    });
   }
 
-  async updateRefreshToken(id: string, refreshToken: string | null | undefined): Promise<void> {
-    await this.userRepository.update(id, { 
-      refresh_token: refreshToken === null ? null : refreshToken 
+  async updateRefreshToken(
+    id: string,
+    refreshToken: string | null | undefined,
+  ): Promise<void> {
+    await this.userRepository.update(id, {
+      refresh_token: refreshToken === null ? null : refreshToken,
     } as any);
   }
 
   // Project management methods
-  async addProjectToUser(userId: string, projectName: string): Promise<UserEntity | null> {
+  async addProjectToUser(
+    userId: string,
+    projectName: string,
+  ): Promise<UserEntity | null> {
     const user = await this.findById(userId);
     if (!user) return null;
 
@@ -87,17 +98,20 @@ export class UserRepository {
       user.projects.push(projectName);
       await this.userRepository.save(user);
     }
-    
+
     return user;
   }
 
-  async removeProjectFromUser(userId: string, projectName: string): Promise<UserEntity | null> {
+  async removeProjectFromUser(
+    userId: string,
+    projectName: string,
+  ): Promise<UserEntity | null> {
     const user = await this.findById(userId);
     if (!user) return null;
 
-    user.projects = user.projects.filter(project => project !== projectName);
+    user.projects = user.projects.filter((project) => project !== projectName);
     await this.userRepository.save(user);
-    
+
     return user;
   }
 
@@ -113,7 +127,10 @@ export class UserRepository {
       .getMany();
   }
 
-  async checkUserHasAccessToProject(userId: string, projectName: string): Promise<boolean> {
+  async checkUserHasAccessToProject(
+    userId: string,
+    projectName: string,
+  ): Promise<boolean> {
     const user = await this.findById(userId);
     if (!user) return false;
 
@@ -143,4 +160,4 @@ export class UserRepository {
       .where("reset->>'expiresAt' < :now", { now: now.toISOString() })
       .execute();
   }
-} 
+}

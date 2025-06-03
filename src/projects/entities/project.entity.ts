@@ -41,4 +41,4 @@ export class ProjectEntity {
 
   @UpdateDateColumn()
   updated_at: Date;
-} 
+}

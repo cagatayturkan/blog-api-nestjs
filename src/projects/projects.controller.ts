@@ -1,23 +1,23 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Body, 
-  Patch, 
-  Param, 
-  Delete, 
-  UseGuards, 
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
   ParseUUIDPipe,
   HttpCode,
-  HttpStatus 
+  HttpStatus,
 } from '@nestjs/common';
-import { 
-  ApiTags, 
-  ApiOperation, 
-  ApiResponse, 
-  ApiBearerAuth, 
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
   ApiParam,
-  ApiBody 
+  ApiBody,
 } from '@nestjs/swagger';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
@@ -37,8 +37,8 @@ export class ProjectsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all active projects (Super Admin only)' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Active projects retrieved successfully',
     schema: {
       type: 'array',
@@ -48,47 +48,58 @@ export class ProjectsController {
           id: {
             type: 'string',
             format: 'uuid',
-            example: '123e4567-e89b-12d3-a456-426614174000'
+            example: '123e4567-e89b-12d3-a456-426614174000',
           },
           name: {
             type: 'string',
-            example: 'tech-blog'
+            example: 'tech-blog',
           },
           url: {
             type: 'string',
-            example: 'https://tech-blog.example.com'
+            example: 'https://tech-blog.example.com',
           },
           description: {
             type: 'string',
-            example: 'Technology blog project'
+            example: 'Technology blog project',
           },
           is_active: {
             type: 'boolean',
-            example: true
+            example: true,
           },
           created_at: {
             type: 'string',
-            format: 'date-time'
+            format: 'date-time',
           },
           updated_at: {
             type: 'string',
-            format: 'date-time'
-          }
-        }
-      }
-    }
+            format: 'date-time',
+          },
+        },
+      },
+    },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Super Admin access required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Super Admin access required',
+  })
   async findAll() {
     return this.projectsService.findAll();
   }
 
   @Get('admin/all')
-  @ApiOperation({ summary: 'Get all projects including inactive (Super Admin only)' })
-  @ApiResponse({ status: 200, description: 'All projects retrieved successfully' })
+  @ApiOperation({
+    summary: 'Get all projects including inactive (Super Admin only)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'All projects retrieved successfully',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Super Admin access required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Super Admin access required',
+  })
   async findAllForAdmin() {
     return this.projectsService.findAllForAdmin();
   }
@@ -97,13 +108,19 @@ export class ProjectsController {
   @ApiOperation({ summary: 'Create a new project (Super Admin only)' })
   @ApiBody({
     description: 'Project creation data',
-    type: CreateProjectDto
+    type: CreateProjectDto,
   })
   @ApiResponse({ status: 201, description: 'Project created successfully' })
   @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Super Admin access required' })
-  @ApiResponse({ status: 409, description: 'Conflict - project name already exists' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Super Admin access required',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Conflict - project name already exists',
+  })
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createProjectDto: CreateProjectDto) {
     return this.projectsService.create(createProjectDto);
@@ -114,11 +131,14 @@ export class ProjectsController {
   @ApiParam({
     name: 'id',
     description: 'Project ID',
-    example: '123e4567-e89b-12d3-a456-426614174000'
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiResponse({ status: 200, description: 'Project retrieved successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Super Admin access required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Super Admin access required',
+  })
   @ApiResponse({ status: 404, description: 'Project not found' })
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.projectsService.findOne(id);
@@ -129,11 +149,14 @@ export class ProjectsController {
   @ApiParam({
     name: 'name',
     description: 'Project name',
-    example: 'tech-blog'
+    example: 'tech-blog',
   })
   @ApiResponse({ status: 200, description: 'Project retrieved successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Super Admin access required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Super Admin access required',
+  })
   @ApiResponse({ status: 404, description: 'Project not found' })
   async findByName(@Param('name') name: string) {
     return this.projectsService.findByName(name);
@@ -144,21 +167,27 @@ export class ProjectsController {
   @ApiParam({
     name: 'id',
     description: 'Project ID',
-    example: '123e4567-e89b-12d3-a456-426614174000'
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiBody({
     description: 'Project update data',
-    type: UpdateProjectDto
+    type: UpdateProjectDto,
   })
   @ApiResponse({ status: 200, description: 'Project updated successfully' })
   @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Super Admin access required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Super Admin access required',
+  })
   @ApiResponse({ status: 404, description: 'Project not found' })
-  @ApiResponse({ status: 409, description: 'Conflict - project name already exists' })
+  @ApiResponse({
+    status: 409,
+    description: 'Conflict - project name already exists',
+  })
   async update(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateProjectDto: UpdateProjectDto
+    @Body() updateProjectDto: UpdateProjectDto,
   ) {
     return this.projectsService.update(id, updateProjectDto);
   }
@@ -168,11 +197,14 @@ export class ProjectsController {
   @ApiParam({
     name: 'id',
     description: 'Project ID',
-    example: '123e4567-e89b-12d3-a456-426614174000'
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiResponse({ status: 200, description: 'Project deleted successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Super Admin access required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Super Admin access required',
+  })
   @ApiResponse({ status: 404, description: 'Project not found' })
   @HttpCode(HttpStatus.OK)
   async remove(@Param('id', ParseUUIDPipe) id: string) {
@@ -185,16 +217,22 @@ export class ProjectsController {
   @ApiParam({
     name: 'id',
     description: 'Project ID',
-    example: '123e4567-e89b-12d3-a456-426614174000'
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiResponse({ status: 200, description: 'Project permanently deleted' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Super Admin access required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Super Admin access required',
+  })
   @ApiResponse({ status: 404, description: 'Project not found' })
-  @ApiResponse({ status: 409, description: 'Conflict - project has related data' })
+  @ApiResponse({
+    status: 409,
+    description: 'Conflict - project has related data',
+  })
   @HttpCode(HttpStatus.OK)
   async hardDelete(@Param('id', ParseUUIDPipe) id: string) {
     await this.projectsService.hardDelete(id);
     return { message: 'Project permanently deleted' };
   }
-} 
+}

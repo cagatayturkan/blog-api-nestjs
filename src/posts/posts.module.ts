@@ -13,6 +13,6 @@ import { UserProjectsModule } from '../user-projects/user-projects.module';
     UserProjectsModule,
   ],
   controllers: [PostsController],
-  providers: [PostsService]
+  providers: [PostsService],
 })
 export class PostsModule {}

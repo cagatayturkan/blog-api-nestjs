@@ -8,9 +8,9 @@ export class UpdateCategoryDto extends PartialType(CreateCategoryDto) {
     description: 'Project ID to move category to (admin only)',
     example: '123e4567-e89b-12d3-a456-426614174000',
     format: 'uuid',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsUUID()
   projectId?: string; // Allow changing project (admin only)
-} 
+}

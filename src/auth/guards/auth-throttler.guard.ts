@@ -21,18 +21,18 @@ export class AuthThrottlerGuard extends ThrottlerGuard {
   // Override to set custom TTL for login endpoint
   protected getOptionsForRoute(context: any): { ttl: number; limit: number } {
     const { req } = this.getRequestResponse(context);
-    
+
     if (req.route?.path === '/auth/login' && req.method === 'POST') {
       return {
         ttl: 60000, // 60 seconds
-        limit: 5,  // 5 requests
+        limit: 5, // 5 requests
       };
     }
-    
+
     // Return default values
     return {
       ttl: 60000, // Default TTL
-      limit: 10,  // Default limit
+      limit: 10, // Default limit
     };
   }
-} 
+}

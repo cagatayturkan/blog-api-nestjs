@@ -32,10 +32,12 @@ import { CacheModule } from '@nestjs/cache-manager';
       }),
     }),
     // Specific rate limiting for auth module (stricter than global)
-    ThrottlerModule.forRoot([{
-      ttl: 60, // 60 seconds
-      limit: 5,  // 5 requests per minute for auth endpoints
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60, // 60 seconds
+        limit: 5, // 5 requests per minute for auth endpoints
+      },
+    ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -48,7 +50,16 @@ import { CacheModule } from '@nestjs/cache-manager';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, UserRepository, SessionService, PasswordResetService, MailService, JwtStrategy, GoogleStrategy, AdminSeeder],
+  providers: [
+    AuthService,
+    UserRepository,
+    SessionService,
+    PasswordResetService,
+    MailService,
+    JwtStrategy,
+    GoogleStrategy,
+    AdminSeeder,
+  ],
   exports: [PassportModule, JwtStrategy, SessionService],
 })
-export class AuthModule {} 
+export class AuthModule {}

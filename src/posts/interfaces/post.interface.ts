@@ -53,4 +53,4 @@ export interface MockPost {
   createdAt: string; // String initially, will be converted to Date
   updatedAt: string; // String initially, will be converted to Date
   __v: number;
-} 
+}

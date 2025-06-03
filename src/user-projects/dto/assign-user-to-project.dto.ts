@@ -32,4 +32,4 @@ export class AssignUserToProjectDto {
   @IsString()
   @IsNotEmpty()
   projectName: string;
-} 
+}

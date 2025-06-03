@@ -7,9 +7,9 @@ export class UpdateProjectDto extends PartialType(CreateProjectDto) {
   @ApiProperty({
     description: 'Project active status',
     example: true,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsBoolean()
   is_active?: boolean;
-} 
+}

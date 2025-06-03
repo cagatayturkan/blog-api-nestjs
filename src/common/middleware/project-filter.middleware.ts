@@ -1,4 +1,9 @@
-import { Injectable, NestMiddleware, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NestMiddleware,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -22,22 +27,22 @@ export class ProjectFilterMiddleware implements NestMiddleware {
   async use(req: RequestWithProject, res: Response, next: NextFunction) {
     // Check for projectName header
     const projectName = req.headers['projectname'] as string;
-    
+
     if (!projectName) {
       throw new BadRequestException({
         message: 'Project name is required in header',
         error: 'MISSING_PROJECT_HEADER',
         statusCode: 400,
-        details: 'Please provide "projectName" header with your request'
+        details: 'Please provide "projectName" header with your request',
       });
     }
 
     // Validate project exists and is active
     const project = await this.projectRepository.findOne({
-      where: { 
+      where: {
         name: projectName,
-        is_active: true 
-      }
+        is_active: true,
+      },
     });
 
     if (!project) {
@@ -45,7 +50,7 @@ export class ProjectFilterMiddleware implements NestMiddleware {
         message: `Project "${projectName}" not found or inactive`,
         error: 'PROJECT_NOT_FOUND',
         statusCode: 404,
-        details: `The project "${projectName}" does not exist or has been deactivated`
+        details: `The project "${projectName}" does not exist or has been deactivated`,
       });
     }
 
@@ -57,4 +62,4 @@ export class ProjectFilterMiddleware implements NestMiddleware {
 
     next();
   }
-} 
+}

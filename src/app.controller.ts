@@ -1,4 +1,4 @@
-import { Controller, Get, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
@@ -23,9 +23,14 @@ export class AppController {
 
   @Get('debug-sentry')
   @ApiOperation({ summary: 'Test Sentry error capturing' })
-  @ApiResponse({ status: 500, description: 'Throws an error for Sentry testing' })
+  @ApiResponse({
+    status: 500,
+    description: 'Throws an error for Sentry testing',
+  })
   getError(): void {
     const timestamp = new Date().toISOString();
-    throw new Error(`🚀 TURKIYE BLOG API TEST MESAJI - SENTRY CALISIYOR 2025! 🎯 [${timestamp}]`);
+    throw new Error(
+      `🚀 TURKIYE BLOG API TEST MESAJI - SENTRY CALISIYOR 2025! 🎯 [${timestamp}]`,
+    );
   }
 }

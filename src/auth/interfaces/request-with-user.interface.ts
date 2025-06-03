@@ -9,4 +9,4 @@ export interface RequestWithUser extends Request {
     sessionId: string;
     token: string;
   };
-} 
+}
