@@ -10,7 +10,6 @@ import {
 } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { UserRole } from '../enums/user-role.enum';
-import { UserProjectEntity } from '../../user-projects/entities/user-project.entity';
 import { PostEntity } from '../../posts/entities/post.entity';
 
 @Entity('users') // Database table name
@@ -50,9 +49,9 @@ export class UserEntity {
   @Column({ type: 'text', nullable: true })
   refresh_token: string;
 
-  // One user can be assigned to many projects
-  @OneToMany(() => UserProjectEntity, (userProject) => userProject.user)
-  userProjects: UserProjectEntity[];
+  // Store project names directly in user table
+  @Column({ type: 'text', array: true, default: [] })
+  projects: string[];
 
   // One user can author many posts
   @OneToMany(() => PostEntity, (post) => post.user)

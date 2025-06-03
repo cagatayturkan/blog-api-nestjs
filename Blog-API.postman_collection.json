@@ -866,7 +866,7 @@
 			"name": "🔗 User Projects",
 			"item": [
 				{
-					"name": "1. Assign User to Project",
+					"name": "1. Assign User to Project (by userId)",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -881,7 +881,32 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"userId\": \"{{testUserId}}\",\n  \"projectId\": \"{{projectId}}\"\n}"
+							"raw": "{\n  \"userId\": \"{{testUserId}}\",\n  \"projectName\": \"{{projectName}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/user-projects/assign",
+							"host": ["{{baseUrl}}"],
+							"path": ["user-projects", "assign"]
+						}
+					}
+				},
+				{
+					"name": "1b. Assign User to Project (by userEmail)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userEmail\": \"{{testUserEmail}}\",\n  \"projectName\": \"{{secondProjectName}}\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/user-projects/assign",
@@ -908,7 +933,7 @@
 					}
 				},
 				{
-					"name": "3. Get All User-Project Relations",
+					"name": "3. Get Project Users",
 					"request": {
 						"method": "GET",
 						"header": [
@@ -918,9 +943,43 @@
 							}
 						],
 						"url": {
-							"raw": "{{baseUrl}}/user-projects",
+							"raw": "{{baseUrl}}/user-projects/project/{{projectName}}/users",
 							"host": ["{{baseUrl}}"],
-							"path": ["user-projects"]
+							"path": ["user-projects", "project", "{{projectName}}", "users"]
+						}
+					}
+				},
+				{
+					"name": "4. Get All User-Project Assignments",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/user-projects/assignments",
+							"host": ["{{baseUrl}}"],
+							"path": ["user-projects", "assignments"]
+						}
+					}
+				},
+				{
+					"name": "5. Unassign User from Project",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/user-projects/unassign/{{testUserId}}/{{projectName}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["user-projects", "unassign", "{{testUserId}}", "{{projectName}}"]
 						}
 					}
 				}
@@ -1002,7 +1061,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"userId\": \"{{testUserId}}\",\n  \"projectId\": \"{{projectId}}\"\n}"
+							"raw": "{\n  \"userId\": \"{{testUserId}}\",\n  \"projectName\": \"{{projectName}}\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/user-projects/assign",
@@ -1355,7 +1414,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"userId\": \"{{testUserId}}\",\n  \"projectId\": \"{{secondProjectId}}\"\n}"
+							"raw": "{\n  \"userId\": \"{{testUserId}}\",\n  \"projectName\": \"{{secondProjectName}}\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/user-projects/assign",
@@ -1653,7 +1712,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"userId\": \"{{readOnlyUserId}}\",\n  \"projectId\": \"{{projectId}}\"\n}"
+							"raw": "{\n  \"userId\": \"{{readOnlyUserId}}\",\n  \"projectName\": \"{{projectName}}\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/user-projects/assign",

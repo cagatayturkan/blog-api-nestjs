@@ -125,7 +125,7 @@ export class PostsService {
     }
 
     // Check if user has access to this project
-    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, createPostDto.projectId);
+    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, project.name);
     if (!hasAccess) {
       throw new ForbiddenException(`You don't have access to project "${project.name}"`);
     }
@@ -294,7 +294,7 @@ export class PostsService {
     }
 
     // Check if user has access to this project
-    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, existingEntityToUpdate.project_id);
+    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, existingEntityToUpdate.project.name);
     if (!hasAccess) {
       throw new ForbiddenException(`You don't have access to this project`);
     }
@@ -369,7 +369,7 @@ export class PostsService {
     }
 
     // Check if user has access to this project
-    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, existingEntity.project_id);
+    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, existingEntity.project.name);
     if (!hasAccess) {
       throw new ForbiddenException(`You don't have access to this project`);
     }

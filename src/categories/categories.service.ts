@@ -85,7 +85,7 @@ export class CategoriesService {
     }
 
     // Check if user has access to project
-    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, createCategoryDto.projectId);
+    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, project.name);
     if (!hasAccess) {
       throw new ForbiddenException(`You don't have access to project "${project.name}"`);
     }
@@ -129,15 +129,21 @@ export class CategoriesService {
     return this.mapEntityToInterface(categoryWithProject);
   }
 
-  async findAllByProject(projectId: string, userId: string): Promise<Category[]> {
+  async findAllByProject(projectName: string, userId: string): Promise<Category[]> {
+    // First verify project exists
+    const project = await this.projectRepository.findOne({ where: { name: projectName } });
+    if (!project) {
+      throw new NotFoundException(`Project "${projectName}" not found`);
+    }
+
     // Check if user has access to project
-    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, projectId);
+    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, projectName);
     if (!hasAccess) {
       throw new ForbiddenException(`You don't have access to this project`);
     }
 
     const categories = await this.categoryRepository.find({
-      where: { project: { id: projectId } },
+      where: { project: { id: project.id } },
       relations: ['project'],
       order: { name: 'ASC' },
     });
@@ -156,7 +162,7 @@ export class CategoriesService {
     }
 
     // Check if user has access to project
-    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, category.project.id);
+    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, category.project.name);
     if (!hasAccess) {
       throw new ForbiddenException(`You don't have access to this project`);
     }
@@ -175,7 +181,7 @@ export class CategoriesService {
     }
 
     // Check if user has access to project
-    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, category.project.id);
+    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, category.project.name);
     if (!hasAccess) {
       throw new ForbiddenException(`You don't have access to this project`);
     }
@@ -195,7 +201,7 @@ export class CategoriesService {
       category.project = newProject;
     }
 
-    // Check for name conflicts in the target project (check for name conflicts in the target project)
+    // Check for name conflicts in the target project
     if (updateCategoryDto.name && updateCategoryDto.name !== category.name) {
       const targetProjectId = updateCategoryDto.projectId || category.project.id;
       const existingCategory = await this.categoryRepository.findOne({
@@ -211,37 +217,16 @@ export class CategoriesService {
       }
     }
 
-    // Update fields
+    // Update category properties
     if (updateCategoryDto.name) {
       category.name = updateCategoryDto.name;
-      // Regenerate slug if name changed and no slug provided
-      if (!updateCategoryDto.slug) {
-        const targetProjectId = updateCategoryDto.projectId || category.project.id;
-        category.slug = await this.generateUniqueSlug(updateCategoryDto.name, targetProjectId, id);
-      }
     }
-
-    if (updateCategoryDto.slug) {
-      category.slug = updateCategoryDto.slug;
-    }
-
     if (updateCategoryDto.description !== undefined) {
       category.description = updateCategoryDto.description;
     }
 
     const updatedCategory = await this.categoryRepository.save(category);
-
-    // Reload with relations
-    const categoryWithProject = await this.categoryRepository.findOne({
-      where: { id: updatedCategory.id },
-      relations: ['project'],
-    });
-
-    if (!categoryWithProject) {
-      throw new NotFoundException('Failed to load updated category');
-    }
-
-    return this.mapEntityToInterface(categoryWithProject);
+    return this.mapEntityToInterface(updatedCategory);
   }
 
   async remove(id: string, userId: string, userRole: string): Promise<void> {
@@ -255,7 +240,7 @@ export class CategoriesService {
     }
 
     // Check if user has access to this project
-    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, category.project.id);
+    const hasAccess = await this.userProjectsService.checkUserHasAccessToProject(userId, category.project.name);
     if (!hasAccess) {
       throw new ForbiddenException(`You don't have access to this project`);
     }

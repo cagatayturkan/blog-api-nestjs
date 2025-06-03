@@ -13,7 +13,6 @@ import { TokenBlacklistEntity } from './auth/entities/token-blacklist.entity';
 import { PasswordResetEntity } from './auth/entities/password-reset.entity';
 import { ProjectEntity } from './projects/entities/project.entity';
 import { CategoryEntity } from './categories/entities/category.entity';
-import { UserProjectEntity } from './user-projects/entities/user-project.entity';
 import { UserProjectsModule } from './user-projects/user-projects.module';
 import { ProjectsModule } from './projects/projects.module';
 import { CategoriesModule } from './categories/categories.module';
@@ -52,7 +51,7 @@ import { SentryGlobalFilter } from '@sentry/nestjs/setup';
         username: configService.get('DB_USERNAME', 'cagatayturkann'),
         password: configService.get('DB_PASSWORD', 'mypassword'),
         database: configService.get('DB_DATABASE', 'nestjstest'),
-        entities: [PostEntity, UserEntity, TokenBlacklistEntity, ProjectEntity, CategoryEntity, UserProjectEntity, PasswordResetEntity],
+        entities: [PostEntity, UserEntity, TokenBlacklistEntity, ProjectEntity, CategoryEntity, PasswordResetEntity],
         synchronize: configService.get('NODE_ENV') === 'development',
       }),
     }),

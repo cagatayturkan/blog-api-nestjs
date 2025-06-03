@@ -1,18 +1,15 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserProjectEntity } from './entities/user-project.entity';
 import { UserEntity } from '../auth/entities/user.entity';
 import { ProjectEntity } from '../projects/entities/project.entity';
+import { UserRepository } from '../auth/repositories/user.repository';
 import { AssignUserToProjectDto } from './dto/assign-user-to-project.dto';
 
 @Injectable()
 export class UserProjectsService {
   constructor(
-    @InjectRepository(UserProjectEntity)
-    private userProjectRepository: Repository<UserProjectEntity>,
-    @InjectRepository(UserEntity)
-    private userRepository: Repository<UserEntity>,
+    private readonly userRepository: UserRepository,
     @InjectRepository(ProjectEntity)
     private projectRepository: Repository<ProjectEntity>,
   ) {}
@@ -30,12 +27,12 @@ export class UserProjectsService {
     let user: UserEntity | null;
     
     if (userId) {
-      user = await this.userRepository.findOne({ where: { id: userId } });
+      user = await this.userRepository.findById(userId);
       if (!user) {
         throw new NotFoundException(`User with ID ${userId} not found`);
       }
     } else {
-      user = await this.userRepository.findOne({ where: { email: userEmail } });
+      user = await this.userRepository.findByEmail(userEmail!);
       if (!user) {
         throw new NotFoundException(`User with email ${userEmail} not found`);
       }
@@ -71,93 +68,82 @@ export class UserProjectsService {
     return project;
   }
 
-  // Updated method with flexible identifier support
-  async assignUserToProject(assignDto: AssignUserToProjectDto): Promise<UserProjectEntity> {
+  async assignUserToProject(assignDto: AssignUserToProjectDto): Promise<{ message: string; user: Partial<UserEntity> }> {
     // Resolve user and project using flexible identifiers
     const user = await this.resolveUser(assignDto.userId, assignDto.userEmail);
-    const project = await this.resolveProject(assignDto.projectId, assignDto.projectName);
+    const project = await this.resolveProject(undefined, assignDto.projectName);
 
     // Check if assignment already exists
-    const existingAssignment = await this.userProjectRepository.findOne({
-      where: { user: { id: user.id }, project: { id: project.id } },
-    });
-
-    if (existingAssignment) {
+    if (user.projects.includes(project.name)) {
       throw new ConflictException(`User ${user.email} is already assigned to project ${project.name}`);
     }
 
-    // Create new assignment
-    const assignment = this.userProjectRepository.create({
-      user,
-      project,
-    });
-
-    return this.userProjectRepository.save(assignment);
-  }
-
-  // Legacy method for backward compatibility (kept for internal use)
-  async assignUserToProjectById(userId: string, projectId: string): Promise<UserProjectEntity> {
-    return this.assignUserToProject({ userId, projectId });
-  }
-
-  async unassignUserFromProject(userId: string, projectId: string): Promise<void> {
-    const assignment = await this.userProjectRepository.findOne({
-      where: { user: { id: userId }, project: { id: projectId } },
-    });
-
-    if (!assignment) {
-      throw new NotFoundException(`Assignment not found`);
+    // Add project to user
+    const updatedUser = await this.userRepository.addProjectToUser(user.id, project.name);
+    if (!updatedUser) {
+      throw new NotFoundException('Failed to assign user to project');
     }
 
-    await this.userProjectRepository.remove(assignment);
+    // Remove sensitive data
+    const { password, refresh_token, ...userResponse } = updatedUser;
+
+    return {
+      message: `User ${user.email} assigned to project ${project.name} successfully`,
+      user: userResponse
+    };
   }
 
-  async getUserProjects(userId: string): Promise<ProjectEntity[]> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+  async unassignUserFromProject(userId: string, projectName: string): Promise<{ message: string }> {
+    const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
 
-    const assignments = await this.userProjectRepository.find({
-      where: { user: { id: userId } },
-      relations: ['project'],
-    });
+    if (!user.projects.includes(projectName)) {
+      throw new NotFoundException(`User is not assigned to project ${projectName}`);
+    }
 
-    return assignments.map(assignment => assignment.project);
+    await this.userRepository.removeProjectFromUser(userId, projectName);
+
+    return {
+      message: `User unassigned from project ${projectName} successfully`
+    };
   }
 
-  async getProjectUsers(projectId: string): Promise<UserEntity[]> {
-    const project = await this.projectRepository.findOne({ where: { id: projectId } });
+  async getUserProjects(userId: string): Promise<string[]> {
+    const projects = await this.userRepository.getUserProjects(userId);
+    return projects;
+  }
+
+  async getProjectUsers(projectName: string): Promise<UserEntity[]> {
+    // Verify project exists
+    const project = await this.projectRepository.findOne({ where: { name: projectName } });
     if (!project) {
-      throw new NotFoundException(`Project with ID ${projectId} not found`);
+      throw new NotFoundException(`Project with name ${projectName} not found`);
     }
 
-    const assignments = await this.userProjectRepository.find({
-      where: { project: { id: projectId } },
-      relations: ['user'],
-    });
-
-    return assignments.map(assignment => assignment.user);
-  }
-
-  async getAllAssignments(): Promise<UserProjectEntity[]> {
-    return this.userProjectRepository.find({
-      relations: ['user', 'project'],
+    const users = await this.userRepository.getUsersByProject(projectName);
+    
+    // Remove sensitive data
+    return users.map(user => {
+      const { password, refresh_token, ...userWithoutSensitiveData } = user;
+      return userWithoutSensitiveData as UserEntity;
     });
   }
 
-  async checkUserHasAccessToProject(userId: string, projectId: string): Promise<boolean> {
-    // SUPER_ADMIN has access to all projects
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (user?.role === 'SUPER_ADMIN') {
-      return true;
-    }
+  async getAllAssignments(): Promise<{ userId: string; email: string; projects: string[] }[]> {
+    const users = await this.userRepository.findAll();
+    
+    return users
+      .filter(user => user.projects.length > 0)
+      .map(user => ({
+        userId: user.id,
+        email: user.email,
+        projects: user.projects
+      }));
+  }
 
-    // Check if user is assigned to the project
-    const assignment = await this.userProjectRepository.findOne({
-      where: { user: { id: userId }, project: { id: projectId } },
-    });
-
-    return !!assignment;
+  async checkUserHasAccessToProject(userId: string, projectName: string): Promise<boolean> {
+    return this.userRepository.checkUserHasAccessToProject(userId, projectName);
   }
 } 

@@ -8,7 +8,6 @@ import {
   OneToMany,
 } from 'typeorm';
 import { CategoryEntity } from '../../categories/entities/category.entity';
-import { UserProjectEntity } from '../../user-projects/entities/user-project.entity';
 import { PostEntity } from '../../posts/entities/post.entity';
 
 @Entity('projects')
@@ -32,10 +31,6 @@ export class ProjectEntity {
   // One project has many categories
   @OneToMany(() => CategoryEntity, (category) => category.project)
   categories: CategoryEntity[];
-
-  // One project can be assigned to many users
-  @OneToMany(() => UserProjectEntity, (userProject) => userProject.project)
-  userProjects: UserProjectEntity[];
 
   // One project has many posts
   @OneToMany(() => PostEntity, (post) => post.project)

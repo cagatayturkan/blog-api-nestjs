@@ -77,4 +77,52 @@ export class UserRepository {
       refresh_token: refreshToken === null ? null : refreshToken 
     } as any);
   }
+
+  // Project management methods
+  async addProjectToUser(userId: string, projectName: string): Promise<UserEntity | null> {
+    const user = await this.findById(userId);
+    if (!user) return null;
+
+    if (!user.projects.includes(projectName)) {
+      user.projects.push(projectName);
+      await this.userRepository.save(user);
+    }
+    
+    return user;
+  }
+
+  async removeProjectFromUser(userId: string, projectName: string): Promise<UserEntity | null> {
+    const user = await this.findById(userId);
+    if (!user) return null;
+
+    user.projects = user.projects.filter(project => project !== projectName);
+    await this.userRepository.save(user);
+    
+    return user;
+  }
+
+  async getUserProjects(userId: string): Promise<string[]> {
+    const user = await this.findById(userId);
+    return user?.projects || [];
+  }
+
+  async getUsersByProject(projectName: string): Promise<UserEntity[]> {
+    return this.userRepository
+      .createQueryBuilder('user')
+      .where(':projectName = ANY(user.projects)', { projectName })
+      .getMany();
+  }
+
+  async checkUserHasAccessToProject(userId: string, projectName: string): Promise<boolean> {
+    const user = await this.findById(userId);
+    if (!user) return false;
+
+    // SUPER_ADMIN has access to all projects
+    if (user.role === 'SUPER_ADMIN') {
+      return true;
+    }
+
+    // Check if user has this project
+    return user.projects.includes(projectName);
+  }
 } 
