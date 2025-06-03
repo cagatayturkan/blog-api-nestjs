@@ -844,7 +844,44 @@
 			"name": "🏗️ Projects",
 			"item": [
 				{
-					"name": "1. Get All Projects",
+					"name": "1. Get All Projects (Super Admin Only)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.test('Response has data array', function () {",
+									"        pm.expect(response.data).to.be.an('array');",
+									"    });",
+									"    ",
+									"    if (response.data.length > 0) {",
+									"        const project = response.data[0];",
+									"        pm.test('Project has required fields', function () {",
+									"            pm.expect(project).to.have.property('id');",
+									"            pm.expect(project).to.have.property('name');",
+									"            pm.expect(project).to.have.property('is_active');",
+									"        });",
+									"        ",
+									"        // Store first project for tests",
+									"        pm.environment.set('existingProjectId', project.id);",
+									"        pm.environment.set('existingProjectName', project.name);",
+									"    }",
+									"    ",
+									"    console.log(`✅ Found ${response.data.length} active projects`);",
+									"} else {",
+									"    console.log('❌ Failed to get projects - check admin authentication');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "GET",
 						"header": [
@@ -857,6 +894,332 @@
 							"raw": "{{baseUrl}}/projects",
 							"host": ["{{baseUrl}}"],
 							"path": ["projects"]
+						}
+					}
+				},
+				{
+					"name": "2. Get All Projects Including Inactive (Admin)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.test('Response has data array', function () {",
+									"        pm.expect(response.data).to.be.an('array');",
+									"    });",
+									"    ",
+									"    console.log(`✅ Admin view: Found ${response.data.length} total projects (including inactive)`);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/projects/admin/all",
+							"host": ["{{baseUrl}}"],
+							"path": ["projects", "admin", "all"]
+						}
+					}
+				},
+				{
+					"name": "3. Create New Project",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.test('Project created successfully', function () {",
+									"        pm.expect(response.data).to.have.property('id');",
+									"        pm.expect(response.data).to.have.property('name');",
+									"        pm.expect(response.data.name).to.eql('test-project-api');",
+									"    });",
+									"    ",
+									"    // Store created project for further tests",
+									"    pm.environment.set('testProjectId', response.data.id);",
+									"    pm.environment.set('testProjectName', response.data.name);",
+									"    ",
+									"    console.log('✅ Project created with ID:', response.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"test-project-api\",\n  \"url\": \"https://test-project.example.com\",\n  \"description\": \"Test project created via API for testing purposes\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/projects",
+							"host": ["{{baseUrl}}"],
+							"path": ["projects"]
+						}
+					}
+				},
+				{
+					"name": "4. Get Project by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.test('Project details retrieved', function () {",
+									"        pm.expect(response.data).to.have.property('id');",
+									"        pm.expect(response.data).to.have.property('name');",
+									"        pm.expect(response.data.id).to.eql(pm.environment.get('testProjectId'));",
+									"    });",
+									"    ",
+									"    console.log('✅ Project details retrieved:', response.data.name);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/projects/{{testProjectId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["projects", "{{testProjectId}}"]
+						}
+					}
+				},
+				{
+					"name": "5. Get Project by Name",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.test('Project found by name', function () {",
+									"        pm.expect(response.data).to.have.property('name');",
+									"        pm.expect(response.data.name).to.eql(pm.environment.get('testProjectName'));",
+									"    });",
+									"    ",
+									"    console.log('✅ Project found by name:', response.data.name);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/projects/name/{{testProjectName}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["projects", "name", "{{testProjectName}}"]
+						}
+					}
+				},
+				{
+					"name": "6. Update Project",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.test('Project updated successfully', function () {",
+									"        pm.expect(response.data).to.have.property('description');",
+									"        pm.expect(response.data.description).to.include('Updated');",
+									"    });",
+									"    ",
+									"    console.log('✅ Project updated successfully');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"description\": \"Updated test project description via API\",\n  \"url\": \"https://updated-test-project.example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/projects/{{testProjectId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["projects", "{{testProjectId}}"]
+						}
+					}
+				},
+				{
+					"name": "7. Soft Delete Project",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.test('Project deleted successfully', function () {",
+									"        pm.expect(response).to.have.property('message');",
+									"        pm.expect(response.message).to.include('deleted successfully');",
+									"    });",
+									"    ",
+									"    console.log('✅ Project soft deleted successfully');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/projects/{{testProjectId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["projects", "{{testProjectId}}"]
+						}
+					}
+				},
+				{
+					"name": "8. Try to Get Deleted Project (Should fail)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"",
+									"if (pm.response.code === 404) {",
+									"    console.log('✅ Soft deleted project correctly not found in public view');",
+									"} else {",
+									"    console.log('❌ Soft deleted project still accessible');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/projects/{{testProjectId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["projects", "{{testProjectId}}"]
+						}
+					}
+				},
+				{
+					"name": "9. Hard Delete Project (Cleanup)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.test('Project permanently deleted', function () {",
+									"        pm.expect(response).to.have.property('message');",
+									"        pm.expect(response.message).to.include('permanently deleted');",
+									"    });",
+									"    ",
+									"    console.log('✅ Project permanently deleted for cleanup');",
+									"    ",
+									"    // Clean up environment variables",
+									"    pm.environment.unset('testProjectId');",
+									"    pm.environment.unset('testProjectName');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/projects/{{testProjectId}}/hard",
+							"host": ["{{baseUrl}}"],
+							"path": ["projects", "{{testProjectId}}", "hard"]
 						}
 					}
 				}
