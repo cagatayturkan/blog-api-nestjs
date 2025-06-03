@@ -4,7 +4,6 @@ import { AuthService } from './auth.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserEntity } from './entities/user.entity';
 import { TokenBlacklistEntity } from './entities/token-blacklist.entity';
-import { PasswordResetEntity } from './entities/password-reset.entity';
 import { UserRepository } from './repositories/user.repository';
 import { TokenBlacklistService } from './services/token-blacklist.service';
 import { PasswordResetService } from './services/password-reset.service';
@@ -21,7 +20,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserEntity, TokenBlacklistEntity, PasswordResetEntity]),
+    TypeOrmModule.forFeature([UserEntity, TokenBlacklistEntity]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     ScheduleModule.forRoot(),
     // Add cache module for token blacklist caching

@@ -10,7 +10,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { UserEntity } from './auth/entities/user.entity';
 import { TokenBlacklistEntity } from './auth/entities/token-blacklist.entity';
-import { PasswordResetEntity } from './auth/entities/password-reset.entity';
 import { ProjectEntity } from './projects/entities/project.entity';
 import { CategoryEntity } from './categories/entities/category.entity';
 import { UserProjectsModule } from './user-projects/user-projects.module';
@@ -36,10 +35,12 @@ import { SentryGlobalFilter } from '@sentry/nestjs/setup';
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => [{
-        ttl: configService.get<number>('THROTTLE_TTL', 60000),
-        limit: configService.get<number>('THROTTLE_LIMIT', 10),
-      }],
+      useFactory: (configService: ConfigService) => [
+        {
+          ttl: configService.get<number>('THROTTLE_TTL', 60000),
+          limit: configService.get<number>('THROTTLE_LIMIT', 10),
+        },
+      ],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -51,7 +52,13 @@ import { SentryGlobalFilter } from '@sentry/nestjs/setup';
         username: configService.get('DB_USERNAME', 'cagatayturkann'),
         password: configService.get('DB_PASSWORD', 'mypassword'),
         database: configService.get('DB_DATABASE', 'nestjstest'),
-        entities: [PostEntity, UserEntity, TokenBlacklistEntity, ProjectEntity, CategoryEntity, PasswordResetEntity],
+        entities: [
+          PostEntity,
+          UserEntity,
+          TokenBlacklistEntity,
+          ProjectEntity,
+          CategoryEntity,
+        ],
         synchronize: configService.get('NODE_ENV') === 'development',
       }),
     }),

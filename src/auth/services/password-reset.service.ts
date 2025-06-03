@@ -3,9 +3,6 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan, MoreThan } from 'typeorm';
-import { PasswordResetEntity } from '../entities/password-reset.entity';
 import { UserRepository } from '../repositories/user.repository';
 import { MailService } from './mail.service';
 import { TokenBlacklistService } from './token-blacklist.service';
@@ -13,12 +10,11 @@ import { BlacklistReason } from '../enums/blacklist-reason.enum';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { v4 as uuidv4 } from 'uuid';
 import * as bcrypt from 'bcrypt';
+import { PasswordResetData } from '../entities/user.entity';
 
 @Injectable()
 export class PasswordResetService {
   constructor(
-    @InjectRepository(PasswordResetEntity)
-    private readonly passwordResetRepository: Repository<PasswordResetEntity>,
     private readonly userRepository: UserRepository,
     private readonly mailService: MailService,
     private readonly tokenBlacklistService: TokenBlacklistService,
@@ -34,16 +30,8 @@ export class PasswordResetService {
       };
     }
 
-    // Check if there's already a recent reset request (within last 5 minutes)
-    const recentReset = await this.passwordResetRepository.findOne({
-      where: {
-        user_id: user.id,
-        is_used: false,
-        created_at: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
-      },
-    });
-
-    if (recentReset) {
+    // Check if user can request a reset (rate limiting)
+    if (!user.canRequestReset()) {
       return {
         message:
           'A password reset email was recently sent. Please check your email or wait a few minutes before requesting again.',
@@ -53,22 +41,17 @@ export class PasswordResetService {
     // Generate secure reset token
     const resetToken = this.generateResetToken();
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+    const createdAt = new Date();
 
-    // Invalidate any existing unused tokens for this user
-    await this.passwordResetRepository.update(
-      { user_id: user.id, is_used: false },
-      { is_used: true },
-    );
-
-    // Create new reset token
-    const passwordReset = this.passwordResetRepository.create({
-      user_id: user.id,
+    // Create reset data
+    const resetData: PasswordResetData = {
       token: resetToken,
-      expires_at: expiresAt,
-      is_used: false,
-    });
+      expiresAt,
+      createdAt,
+    };
 
-    await this.passwordResetRepository.save(passwordReset);
+    // Update user with reset data
+    await this.userRepository.update(user.id, { reset: resetData });
 
     // Send reset email
     try {
@@ -78,8 +61,8 @@ export class PasswordResetService {
         user.first_name,
       );
     } catch (error) {
-      // If email fails, remove the reset token
-      await this.passwordResetRepository.delete(passwordReset.id);
+      // If email fails, clear the reset data
+      await this.userRepository.update(user.id, { reset: null });
       throw new BadRequestException(
         'Failed to send password reset email. Please try again later.',
       );
@@ -94,17 +77,11 @@ export class PasswordResetService {
     token: string,
     newPassword: string,
   ): Promise<{ message: string }> {
-    // Find valid reset token
-    const passwordReset = await this.passwordResetRepository.findOne({
-      where: {
-        token,
-        is_used: false,
-        expires_at: MoreThan(new Date()), // Find tokens that haven't expired yet
-      },
-      relations: ['user'],
-    });
+    // Find user with valid reset token
+    const users = await this.userRepository.findUsersWithResetToken();
+    const user = users.find(u => u.isResetTokenValid(token));
 
-    if (!passwordReset) {
+    if (!user) {
       throw new BadRequestException('Invalid or expired reset token.');
     }
 
@@ -112,28 +89,24 @@ export class PasswordResetService {
     const salt = await bcrypt.genSalt();
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-    // Update user password
-    await this.userRepository.update(passwordReset.user_id, {
+    // Update user password and clear reset data
+    await this.userRepository.update(user.id, {
       password: hashedPassword,
+      reset: null,
     });
 
-    // Mark token as used
-    await this.passwordResetRepository.update(passwordReset.id, {
-      is_used: true,
-    });
-
-    // Invalidate all refresh tokens for security
-    await this.userRepository.updateRefreshToken(passwordReset.user_id, null);
+    // Separately update refresh token to null for security
+    await this.userRepository.updateRefreshToken(user.id, null);
 
     // CRITICAL FIX: Blacklist all existing access tokens for this user
     try {
       await this.tokenBlacklistService.blacklistAllUserTokens(
-        passwordReset.user_id,
+        user.id,
         BlacklistReason.PASSWORD_RESET,
       );
     } catch (error) {
       console.error(
-        `❌ Failed to blacklist tokens for user ${passwordReset.user_id}:`,
+        `❌ Failed to blacklist tokens for user ${user.id}:`,
         error,
       );
       // Don't throw error here - password reset should still succeed
@@ -148,22 +121,16 @@ export class PasswordResetService {
   async validateResetToken(
     token: string,
   ): Promise<{ valid: boolean; email?: string }> {
-    const passwordReset = await this.passwordResetRepository.findOne({
-      where: {
-        token,
-        is_used: false,
-        expires_at: MoreThan(new Date()), // Find tokens that haven't expired yet
-      },
-      relations: ['user'],
-    });
+    const users = await this.userRepository.findUsersWithResetToken();
+    const user = users.find(u => u.isResetTokenValid(token));
 
-    if (!passwordReset) {
+    if (!user) {
       return { valid: false };
     }
 
     return {
       valid: true,
-      email: passwordReset.user.email,
+      email: user.email,
     };
   }
 
@@ -181,19 +148,6 @@ export class PasswordResetService {
   // Clean up expired reset tokens (runs daily at 3 AM)
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async cleanupExpiredTokens(): Promise<void> {
-    const now = new Date();
-    const result = await this.passwordResetRepository.delete({
-      expires_at: LessThan(now),
-    });
-  }
-
-  // Clean up old used tokens (runs weekly)
-  @Cron(CronExpression.EVERY_WEEK)
-  async cleanupUsedTokens(): Promise<void> {
-    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const result = await this.passwordResetRepository.delete({
-      is_used: true,
-      created_at: LessThan(oneWeekAgo),
-    });
+    await this.userRepository.clearExpiredResetTokens();
   }
 }

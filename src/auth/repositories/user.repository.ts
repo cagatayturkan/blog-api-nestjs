@@ -125,4 +125,22 @@ export class UserRepository {
     // Check if user has this project
     return user.projects.includes(projectName);
   }
+
+  // Password reset methods
+  async findUsersWithResetToken(): Promise<UserEntity[]> {
+    return this.userRepository
+      .createQueryBuilder('user')
+      .where('user.reset IS NOT NULL')
+      .getMany();
+  }
+
+  async clearExpiredResetTokens(): Promise<void> {
+    const now = new Date();
+    await this.userRepository
+      .createQueryBuilder()
+      .update(UserEntity)
+      .set({ reset: null })
+      .where("reset->>'expiresAt' < :now", { now: now.toISOString() })
+      .execute();
+  }
 } 
