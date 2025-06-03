@@ -595,7 +595,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"title\": \"Test Blog Post\",\n  \"contentBlocks\": [\n    {\n      \"order\": 0,\n      \"title\": \"Introduction\",\n      \"content\": \"This is a test blog post content for API testing.\"\n    }\n  ],\n  \"categoryIds\": [],\n  \"authors\": [\"Test Author\"],\n  \"language\": \"en\",\n  \"isPublished\": true\n}"
+							"raw": "{\n  \"title\": \"Test Blog Post\",\n  \"contentBlocks\": [\n    {\n      \"order\": 0,\n      \"title\": \"Introduction\",\n      \"content\": \"This is a test blog post content for API testing.\"\n    },\n    {\n      \"order\": 1,\n      \"title\": \"Main Content\",\n      \"content\": \"This is the main content section with more detailed information.\"\n    }\n  ],\n  \"categories\": [\"Test Category\"],\n  \"authors\": [\"Test Author\"],\n  \"seo\": {\n    \"title\": \"Test Blog Post - SEO Title\",\n    \"description\": \"This is a test blog post for API testing purposes with SEO optimization.\"\n  },\n  \"featuredImage\": \"https://example.com/test-image.jpg\",\n  \"language\": \"en\",\n  \"isPublished\": true\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/posts",
@@ -1109,7 +1109,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"title\": \"Unauthorized Cross-Project Post\",\n  \"contentBlocks\": [\n    {\n      \"order\": 0,\n      \"title\": \"Introduction\",\n      \"content\": \"This should fail because user is not assigned to this project\"\n    }\n  ],\n  \"categoryIds\": [],\n  \"authors\": [\"Test Author\"],\n  \"language\": \"en\",\n  \"isPublished\": true\n}"
+							"raw": "{\n  \"title\": \"Unauthorized Cross-Project Post\",\n  \"contentBlocks\": [\n    {\n      \"order\": 0,\n      \"title\": \"Introduction\",\n      \"content\": \"This should fail because user is not assigned to this project\"\n    }\n  ],\n  \"categories\": [],\n  \"authors\": [\"Test Author\"],\n  \"language\": \"en\",\n  \"isPublished\": true\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/posts",
@@ -1460,7 +1460,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"title\": \"Cross-Project Test Post\",\n  \"contentBlocks\": [\n    {\n      \"order\": 0,\n      \"title\": \"Introduction\",\n      \"content\": \"This post should work now that user is assigned to this project\"\n    }\n  ],\n  \"categoryIds\": [],\n  \"authors\": [\"Test Author\"],\n  \"language\": \"en\",\n  \"isPublished\": true\n}"
+							"raw": "{\n  \"title\": \"Cross-Project Test Post\",\n  \"contentBlocks\": [\n    {\n      \"order\": 0,\n      \"title\": \"Introduction\",\n      \"content\": \"This post should work now that user is assigned to this project\"\n    }\n  ],\n  \"categories\": [],\n  \"authors\": [\"Test Author\"],\n  \"language\": \"en\",\n  \"isPublished\": true\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/posts",
@@ -1759,7 +1759,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"title\": \"READ_ONLY User Post\",\n  \"contentBlocks\": [\n    {\n      \"order\": 0,\n      \"title\": \"Introduction\",\n      \"content\": \"This should fail\"\n    }\n  ],\n  \"categoryIds\": [],\n  \"authors\": [\"READ_ONLY User\"],\n  \"language\": \"en\",\n  \"isPublished\": true\n}"
+							"raw": "{\n  \"title\": \"READ_ONLY User Post\",\n  \"contentBlocks\": [\n    {\n      \"order\": 0,\n      \"title\": \"Introduction\",\n      \"content\": \"This should fail\"\n    }\n  ],\n  \"categories\": [],\n  \"authors\": [\"READ_ONLY User\"],\n  \"language\": \"en\",\n  \"isPublished\": true\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/posts",

@@ -7,11 +7,8 @@ import {
   Index,
   ManyToOne,
   JoinColumn,
-  ManyToMany,
-  JoinTable,
 } from 'typeorm';
 import { ProjectEntity } from '../../projects/entities/project.entity';
-import { CategoryEntity } from '../../categories/entities/category.entity';
 import { UserEntity } from '../../auth/entities/user.entity';
 
 @Entity('posts') // Specifies the table name as 'posts' in the database
@@ -41,23 +38,18 @@ export class PostEntity {
     order: number;
     title?: string;
     content: string;
-  }> | null; // Tipini burada belirtiyoruz
+  }> | null;
 
-  // Many-to-Many relationship with categories
-  @ManyToMany(() => CategoryEntity)
-  @JoinTable({
-    name: 'post_categories',
-    joinColumn: { name: 'post_id', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'category_id', referencedColumnName: 'id' },
-  })
-  categories: CategoryEntity[];
+  // Simplified categories as string array (like authors)
+  @Column({ type: 'text', array: true, nullable: true }) // PostgreSQL'de string dizisi
+  categories: string[] | null;
 
   @Column({ type: 'text', array: true, nullable: true }) // PostgreSQL'de string dizisi
   authors: string[] | null;
 
   // We will use JSONB type for attributes.seo in mock.json
   @Column({ type: 'jsonb', nullable: true }) // SeoDataType
-  seo_data: { title: string; description: string } | null; // Tipini burada belirtiyoruz
+  seo_data: { title: string; description: string } | null;
 
   @Column({ type: 'text', nullable: true })
   featured_image_url: string | null;

@@ -1,13 +1,13 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindManyOptions, Like, Not } from 'typeorm';
 import { PostEntity } from './entities/post.entity';
+import { ProjectEntity } from '../projects/entities/project.entity';
+import { CategoryEntity } from '../categories/entities/category.entity';
+import { UserProjectsService } from '../user-projects/user-projects.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Post as PostInterface } from './interfaces/post.interface';
-import { CategoryEntity } from '../categories/entities/category.entity';
-import { ProjectEntity } from '../projects/entities/project.entity';
-import { UserProjectsService } from '../user-projects/user-projects.service';
 // mock.json ve eski interface'ler artık kullanılmayacak.
 
 // DTO ve Entity arasında dönüşüm için yardımcı interface'ler/tipler (isteğe bağlı)
@@ -19,32 +19,28 @@ export class PostsService {
   constructor(
     @InjectRepository(PostEntity)
     private postsRepository: Repository<PostEntity>,
-    @InjectRepository(CategoryEntity)
-    private categoriesRepository: Repository<CategoryEntity>,
     @InjectRepository(ProjectEntity)
     private projectsRepository: Repository<ProjectEntity>,
+    @InjectRepository(CategoryEntity)
+    private categoriesRepository: Repository<CategoryEntity>,
     private userProjectsService: UserProjectsService,
   ) {}
 
-  // Entity'den PostInterface'e dönüşüm (API yanıtları için)
+  // Entity'den Interface'e dönüşüm (API response için)
   private mapEntityToInterface(entity: PostEntity): PostInterface {
     return {
       id: entity.id,
-      userId: entity.user_id,
       projectId: entity.project_id,
-      title: entity.title,
       slug: entity.slug,
-      contentBlocks: entity.content_blocks || [],
-      categories: entity.categories?.map(cat => ({
-        id: cat.id,
-        name: cat.name,
-        slug: cat.slug,
-      })) || [],
-      authors: entity.authors || [],
-      seo: entity.seo_data || null,
-      featuredImage: entity.featured_image_url || null,
+      title: entity.title,
+      contentBlocks: entity.content_blocks,
+      categories: entity.categories || null,
+      authors: entity.authors,
+      seo: entity.seo_data,
+      featuredImage: entity.featured_image_url,
       language: entity.language,
       isPublished: entity.is_published,
+      userId: entity.user_id,
       createdAt: entity.created_at,
       updatedAt: entity.updated_at,
     };
@@ -56,23 +52,43 @@ export class PostsService {
       throw new Error('Project ID is required');
     }
     
+    // Validate categories exist in the database for this project
+    if (dto.categories && dto.categories.length > 0) {
+      await this.validateCategories(dto.categories, dto.projectId);
+    }
+    
     const entity = new PostEntity();
     entity.title = dto.title;
     entity.slug = dto.slug || this.generateSlug(dto.title);
     entity.project_id = dto.projectId;
     entity.content_blocks = dto.contentBlocks;
-    
-    // Load categories by IDs
-    if (dto.categoryIds && dto.categoryIds.length > 0) {
-      entity.categories = await this.categoriesRepository.findByIds(dto.categoryIds);
-    }
-    
+    entity.categories = dto.categories;
     entity.authors = dto.authors;
     entity.seo_data = dto.seo ? { title: dto.seo.title, description: dto.seo.description } : null;
     entity.featured_image_url = dto.featuredImage || null;
     entity.language = dto.language;
     entity.is_published = dto.isPublished ?? false;
     return entity;
+  }
+
+  // Validate that all categories exist in the database for the given project
+  private async validateCategories(categoryNames: string[], projectId: string): Promise<void> {
+    const existingCategories = await this.categoriesRepository.find({
+      where: { 
+        project_id: projectId,
+        is_active: true 
+      }
+    });
+    
+    const existingCategoryNames = existingCategories.map(cat => cat.name);
+    const invalidCategories = categoryNames.filter(name => !existingCategoryNames.includes(name));
+    
+    if (invalidCategories.length > 0) {
+      throw new BadRequestException(
+        `The following categories do not exist in this project: ${invalidCategories.join(', ')}. ` +
+        `Available categories: ${existingCategoryNames.join(', ')}`
+      );
+    }
   }
 
   // Slug oluşturma
@@ -144,7 +160,7 @@ export class PostsService {
     // Load relations for response
     const savedEntity = await this.postsRepository.findOne({
       where: { id: newPostEntity.id },
-      relations: ['project', 'categories', 'user'],
+      relations: ['project', 'user'],
     });
     
     if (!savedEntity) {
@@ -207,7 +223,7 @@ export class PostsService {
       order: { [sortField]: order },
       take: limit,
       skip: skip,
-      relations: ['project', 'categories', 'user'],
+      relations: ['project', 'user'],
     };
 
     // Category filtering would need a more complex query with QueryBuilder
@@ -237,7 +253,7 @@ export class PostsService {
     
     const entity = await this.postsRepository.findOne({
       where: whereConditions,
-      relations: ['project', 'categories', 'user'],
+      relations: ['project', 'user'],
     });
     
     if (!entity) {
@@ -267,7 +283,7 @@ export class PostsService {
     
     const entity = await this.postsRepository.findOne({
       where: whereConditions,
-      relations: ['project', 'categories', 'user'],
+      relations: ['project', 'user'],
     });
     
     if (!entity) {
@@ -286,7 +302,7 @@ export class PostsService {
   ): Promise<PostInterface> {
     const existingEntityToUpdate = await this.postsRepository.findOne({
       where: { id },
-      relations: ['project', 'categories', 'user'],
+      relations: ['project', 'user'],
     });
     
     if (!existingEntityToUpdate) {
@@ -304,7 +320,7 @@ export class PostsService {
       throw new ForbiddenException('You can only update your own posts');
     }
 
-    const changes = await this.mapUpdateDtoToEntityChanges(updatePostDto);
+    const changes = await this.mapUpdateDtoToEntityChanges(updatePostDto, existingEntityToUpdate.project_id);
     Object.assign(existingEntityToUpdate, changes);
     
     // Generate unique slug if title changed and no slug provided
@@ -321,7 +337,7 @@ export class PostsService {
     // Reload with relations
     const updatedEntity = await this.postsRepository.findOne({
       where: { id },
-      relations: ['project', 'categories', 'user'],
+      relations: ['project', 'user'],
     });
     
     if (!updatedEntity) {
@@ -331,7 +347,7 @@ export class PostsService {
     return this.mapEntityToInterface(updatedEntity);
   }
 
-  private async mapUpdateDtoToEntityChanges(dto: UpdatePostDto): Promise<Partial<PostEntity>> {
+  private async mapUpdateDtoToEntityChanges(dto: UpdatePostDto, projectId: string): Promise<Partial<PostEntity>> {
     const changes: Partial<PostEntity> = {};
     
     if (dto.title !== undefined) changes.title = dto.title;
@@ -347,13 +363,12 @@ export class PostsService {
       changes.seo_data = dto.seo ? { title: dto.seo.title, description: dto.seo.description } : null;
     }
     
-    // Handle categories
-    if (dto.categoryIds !== undefined) {
-      if (dto.categoryIds.length > 0) {
-        changes.categories = await this.categoriesRepository.findByIds(dto.categoryIds);
-      } else {
-        changes.categories = [];
+    // Handle categories with validation
+    if (dto.categories !== undefined) {
+      if (dto.categories && dto.categories.length > 0) {
+        await this.validateCategories(dto.categories, projectId);
       }
+      changes.categories = dto.categories;
     }
     
     return changes;

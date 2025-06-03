@@ -63,13 +63,14 @@ export class CreatePostDto {
   contentBlocks: ContentBlockDto[];
 
   @ApiProperty({
-    description: 'Array of category IDs to associate with the post',
+    description: 'Array of category names',
     type: [String],
-    example: ['123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d1-9f12-345678901234']
+    example: ['Technology', 'Web Development', 'JavaScript']
   })
   @IsArray()
-  @IsUUID('4', { each: true })
-  categoryIds: string[];
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  categories: string[];
 
   @ApiProperty({
     description: 'Array of author names',

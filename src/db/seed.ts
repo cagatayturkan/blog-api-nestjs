@@ -115,7 +115,7 @@ async function bootstrap() {
     }
 
     // Create categories for this project if they don't exist
-    const categoryIds: string[] = [];
+    const categoryNames: string[] = [];
     for (const categoryName of mockPost.attributes['our-news-category'] || []) {
       let category = await categoryRepository.findOneBy({ 
         name: categoryName, 
@@ -132,7 +132,7 @@ async function bootstrap() {
         console.log(`Created category: ${categoryName} for project ${projectName}`);
       }
       
-      categoryIds.push(category.id);
+      categoryNames.push(categoryName);
     }
 
     const createPostDto: CreatePostDto = {
@@ -144,7 +144,7 @@ async function bootstrap() {
         title: cb.title,
         content: cb.content,
       })),
-      categoryIds: categoryIds,
+      categories: categoryNames,
       authors: mockPost.attributes.authors || [],
       seo: mockPost.attributes.seo ? {
         title: mockPost.attributes.seo.metaTitle,

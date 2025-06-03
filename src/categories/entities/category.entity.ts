@@ -7,10 +7,8 @@ import {
   ManyToOne,
   JoinColumn,
   Index,
-  ManyToMany,
 } from 'typeorm';
 import { ProjectEntity } from '../../projects/entities/project.entity';
-import { PostEntity } from '../../posts/entities/post.entity';
 
 @Entity('categories')
 @Index(['name', 'project_id'], { unique: true }) // Category name must be unique within a project
@@ -37,10 +35,6 @@ export class CategoryEntity {
 
   @Column({ type: 'uuid' })
   project_id: string;
-
-  // Many-to-Many relationship with posts
-  @ManyToMany(() => PostEntity, (post) => post.categories)
-  posts: PostEntity[];
 
   @CreateDateColumn()
   created_at: Date;

@@ -245,11 +245,11 @@ export class CategoriesService {
       throw new ForbiddenException(`You don't have access to this project`);
     }
 
-    // Check if category is being used by posts
+    // Check if category is being used by posts (updated for string array approach)
     const postCount = await this.postRepository
       .createQueryBuilder('post')
-      .innerJoin('post.categories', 'category')
-      .where('category.id = :categoryId', { categoryId: id })
+      .where('post.project_id = :projectId', { projectId: category.project.id })
+      .andWhere(':categoryName = ANY(post.categories)', { categoryName: category.name })
       .getCount();
 
     if (postCount > 0) {

@@ -21,7 +21,7 @@ export interface Post {
   slug: string;
   title: string;
   contentBlocks: ContentBlock[] | null;
-  categories: Category[] | null;
+  categories: string[] | null; // Simplified to string array
   authors: string[] | null;
   seo: SeoData | null;
   featuredImage: string | null;
